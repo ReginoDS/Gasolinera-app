@@ -1,8 +1,8 @@
 const CACHE_NAME = 'gasolineras-v1';
 const STATIC_ASSETS = [
-  './',
-  './index.html',
-  './manifest.webmanifest'
+  '/Gasolinera-app/',
+  '/Gasolinera-app/index.html',
+  '/Gasolinera-app/manifest.webmanifest'
 ];
 
 // Instalación: cachear assets estáticos
