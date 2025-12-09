@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1a73e8">
+    <title>Gasolineras Cercanas</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            padding-bottom: 20px;
+        }
+
+        .header {
+            background: #1a73e8;
+            color: white;
+            padding: 16px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            margin-bottom: 12px;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .control-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        select, input, button {
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        select, input {
+            background: white;
+            flex: 1;
+            min-width: 100px;
+        }
+
+        button {
+            background: #34a853;
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+            min-width: 44px;
+            min-height: 44px;
+        }
+
+        button:hover {
+            background: #2d9248;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .range-toggle {
+            display: flex;
+            background: white;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .range-toggle button {
+            flex: 1;
+            background: white;
+            color: #1a73e8;
+            border-radius: 0;
+            min-width: 60px;
+        }
+
+        .range-toggle button.active {
+            background: #1a73e8;
+            color: white;
+        }
+
+        .liters-presets {
+            display: flex;
+            gap: 4px;
+        }
+
+        .liters-presets button {
+            flex: 1;
+            background: rgba(255,255,255,0.2);
+            min-width: 50px;
+        }
+
+        .liters-presets button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .advanced {
+            background: rgba(255,255,255,0.1);
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 8px;
+        }
+
+        .advanced-toggle {
+            background: transparent;
+            color: white;
+            text-decoration: underline;
+            padding: 4px;
+            font-size: 13px;
+        }
+
+        .advanced-content {
+            display: none;
+            margin-top: 8px;
+            gap: 8px;
+        }
+
+        .advanced-content.show {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .status {
+            padding: 12px 16px;
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            margin: 16px;
+            border-radius: 4px;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            border-color: #dc3545;
+        }
+
+        .status.success {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+
+        .station-list {
+            padding: 0 16px;
+        }
+
+        .station-card {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .station-card.best {
+            border: 2px solid #34a853;
+            box-shadow: 0 2px 8px rgba(52,168,83,0.2);
+        }
+
+        .station-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+
+        .station-name {
+            font-weight: 600;
+            font-size: 16px;
+            flex: 1;
+        }
+
+        .station-rank {
+            background: #1a73e8;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .station-rank.best {
+            background: #34a853;
+        }
+
+        .station-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin: 12px 0;
+            font-size: 14px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .info-value {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .total-cost {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 4px;
+            margin: 12px 0;
+        }
+
+        .total-cost-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #1a73e8;
+        }
+
+        .cost-breakdown {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .crossover-info {
+            background: #fff3cd;
+            padding: 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        .station-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .btn-nav {
+            flex: 1;
+            background: #1a73e8;
+        }
+
+        .sort-controls {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            background: white;
+            margin: 16px 16px 0 16px;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .sort-controls button {
+            flex: 1;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .sort-controls button.active {
+            background: #1a73e8;
+            color: white;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #1a73e8;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 12px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .refresh-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #1a73e8;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 99;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>⛽ Gasolineras Cercanas</h1>
+        
+        <div class="controls">
+            <div class="control-row">
+                <label>Combustible:</label>
+                <select id="fuelType">
+                    <option value="sp95">Gasolina 95</option>
+                    <option value="sp98">Gasolina 98</option>
+                    <option value="diesel">Diésel</option>
+                </select>
+            </div>
+
+            <div class="control-row">
+                <label>Rango:</label>
+                <div class="range-toggle">
+                    <button id="rangeModeKm" class="active">Km</button>
+                    <button id="rangeModeMin">Min</button>
+                </div>
+                <input type="number" id="rangeValue" value="7" min="1" max="50">
+            </div>
+
+            <div class="control-row">
+                <label>Litros:</label>
+                <input type="number" id="litersX" value="30" min="1" max="100" style="max-width: 80px;">
+                <div class="liters-presets">
+                    <button onclick="setLiters(15)">15L</button>
+                    <button onclick="setLiters(30)">30L</button>
+                    <button onclick="setLiters(50)">50L</button>
+                </div>
+            </div>
+
+            <div class="advanced">
+                <button class="advanced-toggle" onclick="toggleAdvanced()">⚙️ Opciones avanzadas</button>
+                <div class="advanced-content" id="advancedContent">
+                    <div class="control-row">
+                        <label>Consumo (L/100km):</label>
+                        <input type="number" id="consumptionC" value="6.5" min="3" max="20" step="0.1">
+                    </div>
+                    <div class="control-row">
+                        <label>Valor tiempo (€/h):</label>
+                        <input type="number" id="timeValueV" value="0" min="0" max="50" step="1">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="statusBar"></div>
+
+    <div class="sort-controls" id="sortControls" style="display: none;">
+        <button id="sortCost" class="active">Coste Total</button>
+        <button id="sortPrice">Precio</button>
+        <button id="sortTime">Tiempo</button>
+    </div>
+
+    <div class="station-list" id="stationList"></div>
+
+    <button class="refresh-btn" id="refreshBtn" onclick="init()">🔄</button>
+
+    <script>
+        // ============================================
+        // CONFIGURACIÓN
+        // ============================================
+        const CONFIG = {
+            // API de precios del Ministerio (datos abiertos)
+            PRICES_API: 'https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/',
+            
+            // Google Maps API (REEMPLAZAR CON TU CLAVE)
+            GOOGLE_API_KEY: 'TU_GOOGLE_MAPS_API_KEY',
+            DISTANCE_MATRIX_API: 'https://maps.googleapis.com/maps/api/distancematrix/json',
+            
+            // Límites de búsqueda
+            MAX_STATIONS: 50,
+            BATCH_SIZE: 25, // Google permite 25 destinos por llamada
+            
+            // Radio de búsqueda inicial para modo minutos
+            INITIAL_RADIUS_KM: 10,
+            MAX_RADIUS_KM: 50,
+            
+            // Defaults
+            DEFAULTS: {
+                fuelType: 'sp95',
+                rangeMode: 'km',
+                rangeValue: 7,
+                litersX: 30,
+                consumptionC: 6.5,
+                timeValueV: 0
+            }
+        };
+
+        // ============================================
+        // ESTADO GLOBAL
+        // ============================================
+        let state = {
+            location: null,
+            fuelType: CONFIG.DEFAULTS.fuelType,
+            rangeMode: CONFIG.DEFAULTS.rangeMode,
+            rangeValue: CONFIG.DEFAULTS.rangeValue,
+            litersX: CONFIG.DEFAULTS.litersX,
+            consumptionC: CONFIG.DEFAULTS.consumptionC,
+            timeValueV: CONFIG.DEFAULTS.timeValueV,
+            stations: [],
+            enrichedStations: [],
+            sortBy: 'cost',
+            loading: false,
+            error: null
+        };
+
+        // ============================================
+        // UTILIDADES
+        // ============================================
+        function showStatus(message, type = 'info') {
+            const statusBar = document.getElementById('statusBar');
+            statusBar.innerHTML = `<div class="status ${type}">${message}</div>`;
+            if (type === 'success') {
+                setTimeout(() => statusBar.innerHTML = '', 3000);
+            }
+        }
+
+        function showLoading(message) {
+            document.getElementById('stationList').innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>${message}</div>
+                </div>
+            `;
+        }
+
+        function calculateGeoDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radio de la Tierra en km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // ============================================
+        // DATA LAYER
+        // ============================================
+        async function fetchStations(lat, lon, radiusKm) {
+            try {
+                showStatus('Obteniendo precios de gasolineras...', 'info');
+                
+                const response = await fetch(CONFIG.PRICES_API);
+                if (!response.ok) throw new Error('Error al obtener precios');
+                
+                const data = await response.json();
+                const stations = data.ListaEESSPrecio || [];
+                
+                // Filtrar por radio y validar datos
+                const filtered = stations
+                    .map(s => ({
+                        id: s.IDEESS,
+                        name: (s['Rótulo'] || 'Sin nombre').trim(),
+                        lat: parseFloat((s['Latitud'] || '').replace(',', '.')),
+                        lon: parseFloat((s['Longitud (WGS84)'] || '').replace(',', '.')),
+                        address: `${s['Dirección'] || ''}, ${s['Localidad'] || ''}`.trim(),
+                        prices: {
+                            sp95: parseFloat((s['Precio Gasolina 95 E5'] || '').replace(',', '.')) || null,
+                            sp98: parseFloat((s['Precio Gasolina 98 E5'] || '').replace(',', '.')) || null,
+                            diesel: parseFloat((s['Precio Gasoleo A'] || '').replace(',', '.')) || null
+                        }
+                    }))
+                    .filter(s => {
+                        if (!s.lat || !s.lon) return false;
+                        const dist = calculateGeoDistance(lat, lon, s.lat, s.lon);
+                        return dist <= radiusKm;
+                    })
+                    .slice(0, CONFIG.MAX_STATIONS);
+                
+                return filtered;
+            } catch (error) {
+                console.error('Error fetching stations:', error);
+                throw error;
+            }
+        }
+
+        async function fetchDrivingMetrics(origin, destinations) {
+            // Verificar que hay API key configurada
+            if (CONFIG.GOOGLE_API_KEY === 'TU_GOOGLE_MAPS_API_KEY') {
+                // Fallback: usar distancia geodésica
+                return destinations.map(dest => {
+                    const distKm = calculateGeoDistance(origin.lat, origin.lon, dest.lat, dest.lon);
+                    const distM = distKm * 1000;
+                    const durationS = (distKm / 50) * 3600; // Asume 50 km/h promedio
+                    return { distanceM: distM, durationS: durationS };
+                });
+            }
+
+            try {
+                const results = [];
+                
+                // Procesar en lotes
+                for (let i = 0; i < destinations.length; i += CONFIG.BATCH_SIZE) {
+                    const batch = destinations.slice(i, i + CONFIG.BATCH_SIZE);
+                    const destStr = batch.map(d => `${d.lat},${d.lon}`).join('|');
+                    
+                    const url = `${CONFIG.DISTANCE_MATRIX_API}?origins=${origin.lat},${origin.lon}&destinations=${destStr}&mode=driving&key=${CONFIG.GOOGLE_API_KEY}`;
+                    
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error('Error en Distance Matrix API');
+                    
+                    const data = await response.json();
+                    
+                    if (data.status !== 'OK') {
+                        throw new Error(`API status: ${data.status}`);
+                    }
+                    
+                    const rows = data.rows[0].elements;
+                    rows.forEach(element => {
+                        if (element.status === 'OK') {
+                            results.push({
+                                distanceM: element.distance.value,
+                                durationS: element.duration.value
+                            });
+                        } else {
+                            // Fallback a distancia geodésica
+                            const idx = results.length;
+                            const dest = batch[idx];
+                            const distKm = calculateGeoDistance(origin.lat, origin.lon, dest.lat, dest.lon);
+                            results.push({
+                                distanceM: distKm * 1000,
+                                durationS: (distKm / 50) * 3600
+                            });
+                        }
+                    });
+                    
+                    // Evitar rate limiting
+                    if (i + CONFIG.BATCH_SIZE < destinations.length) {
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                    }
+                }
+                
+                return results;
+            } catch (error) {
+                console.warn('Error fetching driving metrics, usando distancia geodésica:', error);
+                // Fallback completo
+                return destinations.map(dest => {
+                    const distKm = calculateGeoDistance(origin.lat, origin.lon, dest.lat, dest.lon);
+                    return {
+                        distanceM: distKm * 1000,
+                        durationS: (distKm / 50) * 3600
+                    };
+                });
+            }
+        }
+
+        function mergeAndComputeCost(stations, metrics, params) {
+            const { fuelType, litersX, consumptionC, timeValueV } = params;
+            
+            const enriched = stations.map((station, idx) => {
+                const metric = metrics[idx];
+                const price = station.prices[fuelType];
+                
+                if (!price || !metric) return null;
+                
+                // Cálculos
+                const D_i = (metric.distanceM / 1000) * 2; // ida y vuelta
+                const T_i = (metric.durationS / 3600) * 2; // ida y vuelta
+                const m_i = price;
+                const n_i = (D_i * consumptionC / 100) * m_i + timeValueV * T_i;
+                const y_i = m_i * litersX + n_i;
+                
+                return {
+                    ...station,
+                    distanceKm: metric.distanceM / 1000,
+                    durationMin: metric.durationS / 60,
+                    price: price,
+                    m: m_i,
+                    n: n_i,
+                    totalCost: y_i,
+                    fuelCostDetour: (D_i * consumptionC / 100) * m_i,
+                    timeCostDetour: timeValueV * T_i
+                };
+            }).filter(s => s !== null);
+            
+            // Ordenar por coste total
+            enriched.sort((a, b) => a.totalCost - b.totalCost);
+            
+            // Calcular puntos de cruce con la mejor opción
+            if (enriched.length > 1) {
+                const best = enriched[0];
+                enriched.forEach((station, idx) => {
+                    if (idx === 0) return;
+                    const denominator = best.m - station.m;
+                    if (Math.abs(denominator) > 0.001) {
+                        const X_star = (station.n - best.n) / denominator;
+                        if (X_star > 0) {
+                            station.crossoverLiters = X_star;
+                        }
+                    }
+                });
+            }
+            
+            return enriched;
+        }
+
+        // ============================================
+        // LÓGICA PRINCIPAL
+        // ============================================
+        async function getUserLocation() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject(new Error('Geolocalización no disponible'));
+                    return;
+                }
+                
+                showStatus('📍 Obteniendo tu ubicación...', 'info');
+                
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        resolve({
+                            lat: position.coords.latitude,
+                            lon: position.coords.longitude
+                        });
+                    },
+                    error => {
+                        reject(new Error('No se pudo obtener tu ubicación. Verifica los permisos.'));
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            });
+        }
+
+        async function searchStations() {
+            try {
+                state.loading = true;
+                state.error = null;
+                
+                // Obtener ubicación
+                if (!state.location) {
+                    state.location = await getUserLocation();
+                }
+                
+                let candidateStations;
+                
+                if (state.rangeMode === 'km') {
+                    // Búsqueda por kilómetros
+                    showLoading('Buscando gasolineras...');
+                    candidateStations = await fetchStations(
+                        state.location.lat,
+                        state.location.lon,
+                        state.rangeValue
+                    );
+                } else {
+                    // Búsqueda por minutos
+                    showLoading('Buscando gasolineras (modo tiempo)...');
+                    let radius = CONFIG.INITIAL_RADIUS_KM;
+                    candidateStations = [];
+                    
+                    while (candidateStations.length < 10 && radius <= CONFIG.MAX_RADIUS_KM) {
+                        candidateStations = await fetchStations(
+                            state.location.lat,
+                            state.location.lon,
+                            radius
+                        );
+                        if (candidateStations.length < 10) {
+                            radius += 5;
+                        }
+                    }
+                }
+                
+                if (candidateStations.length === 0) {
+                    showStatus('No se encontraron gasolineras en el área seleccionada.', 'error');
+                    document.getElementById('stationList').innerHTML = '<div class="empty-state">No hay gasolineras disponibles</div>';
+                    return;
+                }
+                
+                // Filtrar estaciones sin precio del combustible seleccionado
+                const validStations = candidateStations.filter(s => s.prices[state.fuelType]);
+                
+                if (validStations.length === 0) {
+                    showStatus(`No se encontraron gasolineras con precio de ${state.fuelType}.`, 'error');
+                    document.getElementById('stationList').innerHTML = '<div class="empty-state">No hay precios disponibles</div>';
+                    return;
+                }
+                
+                // Obtener métricas de conducción
+                showLoading('Calculando distancias y tiempos...');
+                const metrics = await fetchDrivingMetrics(state.location, validStations);
+                
+                // Calcular costes
+                showLoading('Calculando costes óptimos...');
+                let enrichedStations = mergeAndComputeCost(validStations, metrics, {
+                    fuelType: state.fuelType,
+                    litersX: state.litersX,
+                    consumptionC: state.consumptionC,
+                    timeValueV: state.timeValueV
+                });
+                
+                // Filtrar por tiempo si es modo minutos
+                if (state.rangeMode === 'min') {
+                    enrichedStations = enrichedStations.filter(s => s.durationMin <= state.rangeValue);
+                }
+                
+                if (enrichedStations.length === 0) {
+                    showStatus('No se encontraron gasolineras dentro del rango de tiempo especificado.', 'error');
+                    document.getElementById('stationList').innerHTML = '<div class="empty-state">Amplía el rango de búsqueda</div>';
+                    return;
+                }
+                
+                state.enrichedStations = enrichedStations;
+                renderStations();
+                showStatus(`✅ ${enrichedStations.length} gasolineras encontradas`, 'success');
+                
+                document.getElementById('sortControls').style.display = 'flex';
+                
+            } catch (error) {
+                console.error('Error searching stations:', error);
+                state.error = error.message;
+                showStatus(`❌ Error: ${error.message}`, 'error');
+                document.getElementById('stationList').innerHTML = `
+                    <div class="empty-state">
+                        <p>${error.message}</p>
+                        <button onclick="init()" style="margin-top: 16px;">Reintentar</button>
+                    </div>
+                `;
+            } finally {
+                state.loading = false;
+            }
+        }
+
+        function renderStations() {
+            const sortedStations = [...state.enrichedStations];
+            
+            if (state.sortBy === 'price') {
+                sortedStations.sort((a, b) => a.price - b.price);
+            } else if (state.sortBy === 'time') {
+                sortedStations.sort((a, b) => a.durationMin - b.durationMin);
+            }
+            // Por defecto ya está ordenado por coste total
+            
+            const html = sortedStations.map((station, idx) => {
+                const isBest = state.sortBy === 'cost' && idx === 0;
+                const rank = idx + 1;
+                
+                let crossoverHtml = '';
+                if (station.crossoverLiters && state.sortBy === 'cost' && idx > 0) {
+                    crossoverHtml = `
+                        <div class="crossover-info">
+                            💡 Compensa sobre la mejor opción a partir de ${station.crossoverLiters.toFixed(1)}L
+                        </div>
+                    `;
+                }
+                
+                return `
+                    <div class="station-card ${isBest ? 'best' : ''}">
+                        <div class="station-header">
+                            <div class="station-name">${station.name}</div>
+                            <div class="station-rank ${isBest ? 'best' : ''}">#${rank}</div>
+                        </div>
+                        
+                        <div class="station-info">
+                            <div class="info-item">
+                                <span class="info-label">Precio</span>
+                                <span class="info-value">${station.price.toFixed(3)} €/L</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Distancia</span>
+                                <span class="info-value">${station.distanceKm.toFixed(1)} km</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Tiempo</span>
+                                <span class="info-value">${Math.round(station.durationMin)} min</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Coste combustible</span>
+                                <span class="info-value">${(station.price * state.litersX).toFixed(2)} €</span>
+                            </div>
+                        </div>
+                        
+                        <div class="total-cost">
+                            <div style="color: #666; font-size: 14px; margin-bottom: 4px;">Coste Total (${state.litersX}L)</div>
+                            <div class="total-cost-value">${station.totalCost.toFixed(2)} €</div>
+                            <div class="cost-breakdown">
+                                Desvío: ${station.fuelCostDetour.toFixed(2)} € combustible${
+                                    state.timeValueV > 0 ? ` + ${station.timeCostDetour.toFixed(2)} € tiempo` : ''
+                                }
+                            </div>
+                        </div>
+                        
+                        ${crossoverHtml}
+                        
+                        <div class="station-actions">
+                            <button class="btn-nav" onclick="navigateTo(${station.lat}, ${station.lon})">
+                                🗺️ Ir (Google Maps)
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('stationList').innerHTML = html || '<div class="empty-state">No hay resultados</div>';
+        }
+
+        function navigateTo(lat, lon) {
+            const origin = `${state.location.lat},${state.location.lon}`;
+            const destination = `${lat},${lon}`;
+            const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=driving`;
+            window.open(url, '_blank');
+        }
+
+        // ============================================
+        // EVENT HANDLERS
+        // ============================================
+        function setLiters(amount) {
+            document.getElementById('litersX').value = amount;
+            state.litersX = amount;
+            recalculate();
+        }
+
+        function toggleAdvanced() {
+            const content = document.getElementById('advancedContent');
+            content.classList.toggle('show');
+        }
+
+        const recalculate = debounce(() => {
+            if (state.enrichedStations.length > 0) {
+                const validStations = state.enrichedStations.map(s => ({
+                    ...s,
+                    prices: { [state.fuelType]: s.price }
+                }));
+                
+                const metrics = state.enrichedStations.map(s => ({
+                    distanceM: s.distanceKm * 1000,
+                    durationS: s.durationMin * 60
+                }));
+                
+                state.enrichedStations = mergeAndComputeCost(validStations, metrics, {
+                    fuelType: state.fuelType,
+                    litersX: state.litersX,
+                    consumptionC: state.consumptionC,
+                    timeValueV: state.timeValueV
+                });
+                
+                renderStations();
+            }
+        }, 300);
+
+        function setupEventListeners() {
+            document.getElementById('fuelType').addEventListener('change', (e) => {
+                state.fuelType = e.target.value;
+                init();
+            });
+            
+            document.getElementById('rangeModeKm').addEventListener('click', () => {
+                state.rangeMode = 'km';
+                document.getElementById('rangeModeKm').classList.add('active');
+                document.getElementById('rangeModeMin').classList.remove('active');
+                document.getElementById('rangeValue').value = 7;
+                state.rangeValue = 7;
+            });
+            
+            document.getElementById('rangeModeMin').addEventListener('click', () => {
+                state.rangeMode = 'min';
+                document.getElementById('rangeModeMin').classList.add('active');
+                document.getElementById('rangeModeKm').classList.remove('active');
+                document.getElementById('rangeValue').value = 10;
+                state.rangeValue = 10;
+            });
+            
+            document.getElementById('rangeValue').addEventListener('change', (e) => {
+                state.rangeValue = parseFloat(e.target.value);
+                init();
+            });
+            
+            document.getElementById('litersX').addEventListener('input', (e) => {
+                state.litersX = parseFloat(e.target.value);
+                recalculate();
+            });
+            
+            document.getElementById('consumptionC').addEventListener('input', (e) => {
+                state.consumptionC = parseFloat(e.target.value);
+                recalculate();
+            });
+            
+            document.getElementById('timeValueV').addEventListener('input', (e) => {
+                state.timeValueV = parseFloat(e.target.value);
+                recalculate();
+            });
+            
+            document.getElementById('sortCost').addEventListener('click', () => {
+                state.sortBy = 'cost';
+                updateSortButtons();
+                renderStations();
+            });
+            
+            document.getElementById('sortPrice').addEventListener('click', () => {
+                state.sortBy = 'price';
+                updateSortButtons();
+                renderStations();
+            });
+            
+            document.getElementById('sortTime').addEventListener('click', () => {
+                state.sortBy = 'time';
+                updateSortButtons();
+                renderStations();
+            });
+        }
+
+        function updateSortButtons() {
+            document.getElementById('sortCost').classList.toggle('active', state.sortBy === 'cost');
+            document.getElementById('sortPrice').classList.toggle('active', state.sortBy === 'price');
+            document.getElementById('sortTime').classList.toggle('active', state.sortBy === 'time');
+        }
+
+        // ============================================
+        // INICIALIZACIÓN
+        // ============================================
+        async function init() {
+            await searchStations();
+        }
+
+        // Registrar Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(reg => console.log('Service Worker registrado:', reg.scope))
+                    .catch(err => console.log('Error al registrar Service Worker:', err));
+            });
+        }
+
+        // Iniciar app
+        setupEventListeners();
+        init();
+    </script>
+</body>
+</html>
