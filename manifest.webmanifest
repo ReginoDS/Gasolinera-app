@@ -2,7 +2,7 @@
   "name": "Gasolineras Cercanas España",
   "short_name": "Gasolineras",
   "description": "Encuentra las gasolineras más económicas cerca de ti con cálculo de coste total",
-  "start_url": "./",
+  "start_url": "/Gasolinera-app/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#1a73e8",
