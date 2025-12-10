@@ -400,7 +400,7 @@
                     </div>
                     <div class="control-row">
                         <label>Valor tiempo (€/h):</label>
-                        <input type="number" id="timeValueV" value="0" min="0" max="50" step="1">
+                        <input type="number" id="timeValueV" value="1" min="0" max="50" step="1">
                     </div>
                 </div>
             </div>
@@ -1332,51 +1332,9 @@
         // ============================================
         // INICIALIZACIÓN
         // ============================================
-        
-        // Sincronizar inputs HTML con CONFIG.DEFAULTS
-        // Esta es la ÚNICA fuente de verdad para los valores por defecto
-        function syncInputsWithDefaults() {
-            const d = CONFIG.DEFAULTS;
-
-            // Sincronizar fuelType
-            document.getElementById('fuelType').value = d.fuelType;
-
-            // Sincronizar rangeMode
-            const rangeMode = d.rangeMode;
-            const modeKm = document.getElementById('modeKm');
-            const modeMin = document.getElementById('modeMin');
-            const indicator = document.getElementById('rangeIndicator');
-
-            if (rangeMode === 'km') {
-                modeKm.classList.add('active');
-                modeMin.classList.remove('active');
-                indicator.classList.remove('mode-min');
-            } else {
-                modeMin.classList.add('active');
-                modeKm.classList.remove('active');
-                indicator.classList.add('mode-min');
-            }
-
-            // Sincronizar rangeValue
-            document.getElementById('rangeValue').value = d.rangeValue;
-
-            // Sincronizar litersX
-            document.getElementById('litersX').value = d.litersX;
-
-            // Sincronizar consumptionC
-            document.getElementById('consumptionC').value = d.consumptionC;
-
-            // Sincronizar timeValueV
-            document.getElementById('timeValueV').value = d.timeValueV;
-
-            if (DEBUG) console.log('✅ Inputs sincronizados con CONFIG.DEFAULTS');
-        }
-
         async function init() {
-            // Sincronizar inputs con CONFIG.DEFAULTS (fuente de verdad)
-            syncInputsWithDefaults();
+            
             updateLitersIndicator(state.litersX);
-
             await searchStations();
         }
 
