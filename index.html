@@ -601,7 +601,7 @@
             timeValueV: CONFIG.DEFAULTS.timeValueV,
             stations: [],
             enrichedStations: [],
-            sortBy: 'cost',
+            sortBy: 'recomendado',
             loading: false,
             error: null,
             useRealRoutes: false // Por defecto usa geodésica
@@ -650,26 +650,13 @@
         // ============================================
 
         /**
-         * Calcula el coste del desvío a una gasolinera (ida + vuelta)
-         * @param {Object} station - Objeto gasolinera con distanceKm y durationMin
-         * @param {number} fuelConsumptionPerKm - Consumo en L/km (consumo/100)
-         * @param {number} userFuelPrice - Precio actual del usuario en €/L
-         * @param {number} timeValueEurPerMin - Valor del tiempo en €/min
-         * @returns {number} Coste total del desvío en euros
-         */
-        function calculateDetourCost(station, fuelConsumptionPerKm, userFuelPrice, timeValueEurPerMin) {
-            const fuelCost = station.distanceKm * 2 * fuelConsumptionPerKm * userFuelPrice;
-            const timeCost = station.durationMin * 2 * timeValueEurPerMin;
-            return fuelCost + timeCost;
-        }
-
-        /**
          * Calcula la frontera de Pareto: gasolineras no dominadas y sus rangos óptimos
-         * @param {Array} stations - Array de gasolineras con price y detourCostEur
+         * @param {Array} stations - Array de gasolineras con m (precio) y n (coste desvío)
          * @returns {Object} { frontier: Array, dominated: Array }
          */
         function calculateParetoFrontier(stations) {
             if (stations.length === 0) return { frontier: [], dominated: [] };
+            
             if (stations.length === 1) {
                 stations[0].inFrontier = true;
                 stations[0].rangeStart = 0;
@@ -688,9 +675,9 @@
                     if (i === j) continue;
                     const other = stations[j];
                     // other domina a st si es igual o mejor en ambas dimensiones
-                    if (other.price <= st.price && 
-                        other.detourCostEur <= st.detourCostEur &&
-                        (other.price < st.price || other.detourCostEur < st.detourCostEur)) {
+                    if (other.m <= st.m && 
+                        other.n <= st.n &&
+                        (other.m < st.m || other.n < st.n)) {
                         isDominated = true;
                         break;
                     }
@@ -704,49 +691,110 @@
                 }
             });
 
-            // Ordenar frontera por precio creciente
-            frontier.sort((a, b) => a.price - b.price);
+            // Si solo hay una gasolinera en la frontera
+            if (frontier.length === 1) {
+                frontier[0].rangeStart = 0;
+                frontier[0].rangeEnd = Infinity;
+                frontier[0].rangeText = "cualquier cantidad";
+                dominated.forEach(st => {
+                    st.rangeStart = null;
+                    st.rangeEnd = null;
+                    st.rangeText = "nunca es óptima";
+                });
+                return { frontier, dominated };
+            }
+
+            // Ordenar frontera por precio creciente (m)
+            frontier.sort((a, b) => a.m - b.m);
 
             // Calcular puntos de cruce entre gasolineras consecutivas
             const crossovers = [];
             for (let i = 0; i < frontier.length - 1; i++) {
                 const current = frontier[i];
                 const next = frontier[i + 1];
-                const priceDiff = next.price - current.price;
-                const costDiff = current.detourCostEur - next.detourCostEur;
+                const priceDiff = next.m - current.m;
+                const costDiff = current.n - next.n;
                 
                 if (Math.abs(priceDiff) > 0.0001) {
                     const crossoverLiters = costDiff / priceDiff;
-                    crossovers.push({ liters: crossoverLiters });
+                    crossovers.push(crossoverLiters);
+                } else {
+                    // Si precios iguales, no hay cruce válido
+                    crossovers.push(null);
+                }
+            }
+
+            // IMPORTANTE: Los cruces DEBEN estar en orden DECRECIENTE
+            // porque frontier está ordenada por precio creciente
+            // Verificar (para debug)
+            for (let i = 0; i < crossovers.length - 1; i++) {
+                if (crossovers[i] !== null && crossovers[i + 1] !== null) {
+                    if (crossovers[i] < crossovers[i + 1]) {
+                        console.error('⚠️ ERROR: Cruces en orden incorrecto', {
+                            cruces: crossovers,
+                            frontera: frontier.map(f => ({ nombre: f.name, m: f.m, n: f.n }))
+                        });
+                    }
                 }
             }
 
             // Asignar rangos de dominancia
-            if (frontier.length > 1) {
-                for (let i = 0; i < frontier.length; i++) {
-                    if (i === 0) {
-                        // La más barata: desde primer cruce hasta infinito
-                        frontier[i].rangeStart = crossovers[0]?.liters > 0 ? crossovers[0].liters : 0;
-                        frontier[i].rangeEnd = Infinity;
-                        frontier[i].rangeText = frontier[i].rangeStart > 100 ? 
-                            `repostajes muy grandes (>${frontier[i].rangeStart.toFixed(0)} L)` :
-                            `más de ${frontier[i].rangeStart.toFixed(1)} L`;
-                    } else if (i === frontier.length - 1) {
-                        // La más cara: desde 0 hasta último cruce
-                        frontier[i].rangeStart = 0;
-                        frontier[i].rangeEnd = crossovers[i - 1]?.liters > 0 ? crossovers[i - 1].liters : Infinity;
-                        frontier[i].rangeText = `menos de ${frontier[i].rangeEnd.toFixed(1)} L`;
+            for (let i = 0; i < frontier.length; i++) {
+                if (i === 0) {
+                    // Gasolinera más BARATA (índice 0)
+                    // Óptima para repostajes GRANDES: desde primer cruce hasta infinito
+                    const cruce = crossovers[0];
+                    frontier[i].rangeStart = cruce !== null && cruce > 0 ? cruce : 0;
+                    frontier[i].rangeEnd = Infinity;
+                    
+                    if (frontier[i].rangeStart > 100) {
+                        frontier[i].rangeText = `repostajes muy grandes (>${frontier[i].rangeStart.toFixed(0)} L)`;
+                    } else if (frontier[i].rangeStart > 0) {
+                        frontier[i].rangeText = `más de ${frontier[i].rangeStart.toFixed(1)} L`;
                     } else {
-                        // Intermedias: entre dos cruces
-                        frontier[i].rangeStart = crossovers[i]?.liters > 0 ? crossovers[i].liters : 0;
-                        frontier[i].rangeEnd = crossovers[i - 1]?.liters > 0 ? crossovers[i - 1].liters : Infinity;
+                        frontier[i].rangeText = "cualquier cantidad";
+                    }
+                    
+                } else if (i === frontier.length - 1) {
+                    // Gasolinera más CARA (último índice)
+                    // Óptima para repostajes PEQUEÑOS: desde 0 hasta último cruce
+                    const cruce = crossovers[i - 1];
+                    frontier[i].rangeStart = 0;
+                    frontier[i].rangeEnd = cruce !== null && cruce > 0 ? cruce : Infinity;
+                    
+                    if (frontier[i].rangeEnd === Infinity) {
+                        frontier[i].rangeText = "cualquier cantidad";
+                    } else {
+                        frontier[i].rangeText = `menos de ${frontier[i].rangeEnd.toFixed(1)} L`;
+                    }
+                    
+                } else {
+                    // Gasolineras INTERMEDIAS
+                    // Óptimas entre dos cruces
+                    const cruceInferior = crossovers[i]; // Cruce con la siguiente (más cara)
+                    const cruceSuperior = crossovers[i - 1]; // Cruce con la anterior (más barata)
+                    
+                    frontier[i].rangeStart = cruceInferior !== null && cruceInferior > 0 ? cruceInferior : 0;
+                    frontier[i].rangeEnd = cruceSuperior !== null && cruceSuperior > 0 ? cruceSuperior : Infinity;
+                    
+                    // Validar que rangeStart < rangeEnd
+                    if (frontier[i].rangeStart >= frontier[i].rangeEnd && frontier[i].rangeEnd !== Infinity) {
+                        console.error('⚠️ ERROR: Rango inválido', {
+                            gasolinera: frontier[i].name,
+                            rangeStart: frontier[i].rangeStart,
+                            rangeEnd: frontier[i].rangeEnd,
+                            cruces: crossovers
+                        });
+                        // Corregir intercambiando
+                        [frontier[i].rangeStart, frontier[i].rangeEnd] = [frontier[i].rangeEnd, frontier[i].rangeStart];
+                    }
+                    
+                    if (frontier[i].rangeEnd === Infinity) {
+                        frontier[i].rangeText = `más de ${frontier[i].rangeStart.toFixed(1)} L`;
+                    } else {
                         frontier[i].rangeText = `entre ${frontier[i].rangeStart.toFixed(1)} y ${frontier[i].rangeEnd.toFixed(1)} L`;
                     }
                 }
-            } else if (frontier.length === 1) {
-                frontier[0].rangeStart = 0;
-                frontier[0].rangeEnd = Infinity;
-                frontier[0].rangeText = "cualquier cantidad";
             }
 
             // Marcar gasolineras dominadas
@@ -757,20 +805,6 @@
             });
 
             return { frontier, dominated };
-        }
-
-        /**
-         * Actualiza los costes de desvío de todas las gasolineras según parámetros actuales
-         * @param {Array} stations - Array de gasolineras
-         */
-        function updateDetourCosts(stations) {
-            const fuelConsumption = state.consumptionC / 100 || 0.045;
-            const userFuelPrice = stations.length > 0 ? stations[0].price : 1.50; // Usar precio de primera estación como referencia
-            const timeValue = (state.timeValueV / 60) || 0; // Convertir €/h a €/min
-            
-            stations.forEach(st => {
-                st.detourCostEur = calculateDetourCost(st, fuelConsumption, userFuelPrice, timeValue);
-            });
         }
 
         // ============================================
@@ -1098,8 +1132,7 @@
                 
                 state.enrichedStations = enrichedStations;
                 
-                // Calcular costes de desvío y frontera de Pareto
-                updateDetourCosts(enrichedStations);
+                // Calcular frontera de Pareto (usa m y n ya calculados en mergeAndComputeCost)
                 paretoData = calculateParetoFrontier(enrichedStations);
                 
                 renderStations();
@@ -1128,17 +1161,31 @@
             // Marcar cuál es óptima para cantidad actual
             if (paretoData) {
                 const litros = state.litersX;
+                let optimalFound = false;
+                
                 sortedStations.forEach(st => {
-                    if (st.inFrontier) {
-                        st.isOptimalForCurrent = (litros >= st.rangeStart && litros < st.rangeEnd);
+                    if (st.inFrontier && !optimalFound) {
+                        // Incluir rangeEnd con <= para evitar gaps
+                        const isInRange = (litros >= st.rangeStart && 
+                                          (st.rangeEnd === Infinity ? true : litros <= st.rangeEnd));
+                        st.isOptimalForCurrent = isInRange;
+                        if (isInRange) optimalFound = true;
                     } else {
                         st.isOptimalForCurrent = false;
                     }
                 });
+                
+                // Debug: verificar que solo hay UNA óptima
+                const optimalCount = sortedStations.filter(st => st.isOptimalForCurrent).length;
+                if (optimalCount > 1) {
+                    console.warn('⚠️ Múltiples gasolineras marcadas como óptimas:', optimalCount);
+                } else if (optimalCount === 0 && paretoData.frontier.length > 0) {
+                    console.warn('⚠️ Ninguna gasolinera marcada como óptima para', litros, 'L');
+                }
             }
             
             // Ordenar según criterio
-            if (state.sortBy === 'cost' && paretoData) {
+            if (state.sortBy === 'recomendado' && paretoData) {
                 // Ordenación inteligente por Pareto: óptima → frontera → dominadas
                 const optimal = sortedStations.filter(st => st.isOptimalForCurrent);
                 const frontierOthers = sortedStations.filter(st => st.inFrontier && !st.isOptimalForCurrent);
@@ -1154,14 +1201,14 @@
             } else if (state.sortBy === 'time') {
                 sortedStations.sort((a, b) => a.durationMin - b.durationMin);
             }
-            // Por defecto 'cost' ya está ordenado por Pareto
+            // Por defecto 'recomendado' ya está ordenado por Pareto
             
             const html = sortedStations.map((station, idx) => {
-                const isBest = state.sortBy === 'cost' && station.isOptimalForCurrent;
+                const isBest = state.sortBy === 'recomendado' && station.isOptimalForCurrent;
                 const rank = idx + 1;
                 
                 let crossoverHtml = '';
-                if (station.crossoverMessage && state.sortBy !== 'cost' && idx > 0) {
+                if (station.crossoverMessage && state.sortBy !== 'recomendado' && idx > 0) {
                     crossoverHtml = `
                         <div class="crossover-info">
                             ${station.crossoverMessage}
@@ -1171,7 +1218,7 @@
                 
                 // Badge de frontera de Pareto
                 let paretoBadgeHtml = '';
-                if (paretoData && state.sortBy === 'cost') {
+                if (paretoData && state.sortBy === 'recomendado') {
                     let badgeText = '';
                     let badgeColor = '';
                     let badgeIcon = '';
@@ -1291,8 +1338,7 @@
                     timeValueV: state.timeValueV
                 });
                 
-                // Recalcular Pareto al cambiar parámetros
-                updateDetourCosts(state.enrichedStations);
+                // Recalcular Pareto (usa m y n recalculados)
                 paretoData = calculateParetoFrontier(state.enrichedStations);
                 
                 renderStations();
@@ -1344,7 +1390,7 @@
             });
             
             document.getElementById('sortCost').addEventListener('click', () => {
-                state.sortBy = 'cost';
+                state.sortBy = 'recomendado';
                 updateSortButtons();
                 renderStations();
             });
@@ -1366,7 +1412,7 @@
         }
 
         function updateSortButtons() {
-            document.getElementById('sortCost').classList.toggle('active', state.sortBy === 'cost');
+            document.getElementById('sortCost').classList.toggle('active', state.sortBy === 'recomendado');
             document.getElementById('sortPrice').classList.toggle('active', state.sortBy === 'price');
             document.getElementById('sortTime').classList.toggle('active', state.sortBy === 'time');
         }
