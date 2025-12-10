@@ -660,4 +660,751 @@
         function calculateDetourCost(station, fuelConsumptionPerKm, userFuelPrice, timeValueEurPerMin) {
             const fuelCost = station.distanceKm * 2 * fuelConsumptionPerKm * userFuelPrice;
             const timeCost = station.durationMin * 2 * timeValueEurPerMin;
-            return fuelCost 
+            return fuelCost + timeCost;
+        }
+
+        /**
+         * Calcula la frontera de Pareto: gasolineras no dominadas y sus rangos óptimos
+         * @param {Array} stations - Array de gasolineras con price y detourCostEur
+         * @returns {Object} { frontier: Array, dominated: Array }
+         */
+        function calculateParetoFrontier(stations) {
+            if (stations.length === 0) return { frontier: [], dominated: [] };
+            if (stations.length === 1) {
+                stations[0].inFrontier = true;
+                stations[0].rangeStart = 0;
+                stations[0].rangeEnd = Infinity;
+                stations[0].rangeText = "cualquier cantidad";
+                return { frontier: [stations[0]], dominated: [] };
+            }
+
+            const dominated = [];
+            const frontier = [];
+
+            // Identificar gasolineras dominadas
+            stations.forEach((st, i) => {
+                let isDominated = false;
+                for (let j = 0; j < stations.length; j++) {
+                    if (i === j) continue;
+                    const other = stations[j];
+                    // other domina a st si es igual o mejor en ambas dimensiones
+                    if (other.price <= st.price && 
+                        other.detourCostEur <= st.detourCostEur &&
+                        (other.price < st.price || other.detourCostEur < st.detourCostEur)) {
+                        isDominated = true;
+                        break;
+                    }
+                }
+                if (isDominated) {
+                    dominated.push(st);
+                    st.inFrontier = false;
+                } else {
+                    frontier.push(st);
+                    st.inFrontier = true;
+                }
+            });
+
+            // Ordenar frontera por precio creciente
+            frontier.sort((a, b) => a.price - b.price);
+
+            // Calcular puntos de cruce entre gasolineras consecutivas
+            const crossovers = [];
+            for (let i = 0; i < frontier.length - 1; i++) {
+                const current = frontier[i];
+                const next = frontier[i + 1];
+                const priceDiff = next.price - current.price;
+                const costDiff = current.detourCostEur - next.detourCostEur;
+                
+                if (Math.abs(priceDiff) > 0.0001) {
+                    const crossoverLiters = costDiff / priceDiff;
+                    crossovers.push({ liters: crossoverLiters });
+                }
+            }
+
+            // Asignar rangos de dominancia
+            if (frontier.length > 1) {
+                for (let i = 0; i < frontier.length; i++) {
+                    if (i === 0) {
+                        // La más barata: desde primer cruce hasta infinito
+                        frontier[i].rangeStart = crossovers[0]?.liters > 0 ? crossovers[0].liters : 0;
+                        frontier[i].rangeEnd = Infinity;
+                        frontier[i].rangeText = frontier[i].rangeStart > 100 ? 
+                            `repostajes muy grandes (>${frontier[i].rangeStart.toFixed(0)} L)` :
+                            `más de ${frontier[i].rangeStart.toFixed(1)} L`;
+                    } else if (i === frontier.length - 1) {
+                        // La más cara: desde 0 hasta último cruce
+                        frontier[i].rangeStart = 0;
+                        frontier[i].rangeEnd = crossovers[i - 1]?.liters > 0 ? crossovers[i - 1].liters : Infinity;
+                        frontier[i].rangeText = `menos de ${frontier[i].rangeEnd.toFixed(1)} L`;
+                    } else {
+                        // Intermedias: entre dos cruces
+                        frontier[i].rangeStart = crossovers[i]?.liters > 0 ? crossovers[i].liters : 0;
+                        frontier[i].rangeEnd = crossovers[i - 1]?.liters > 0 ? crossovers[i - 1].liters : Infinity;
+                        frontier[i].rangeText = `entre ${frontier[i].rangeStart.toFixed(1)} y ${frontier[i].rangeEnd.toFixed(1)} L`;
+                    }
+                }
+            } else if (frontier.length === 1) {
+                frontier[0].rangeStart = 0;
+                frontier[0].rangeEnd = Infinity;
+                frontier[0].rangeText = "cualquier cantidad";
+            }
+
+            // Marcar gasolineras dominadas
+            dominated.forEach(st => {
+                st.rangeStart = null;
+                st.rangeEnd = null;
+                st.rangeText = "nunca es óptima";
+            });
+
+            return { frontier, dominated };
+        }
+
+        /**
+         * Actualiza los costes de desvío de todas las gasolineras según parámetros actuales
+         * @param {Array} stations - Array de gasolineras
+         */
+        function updateDetourCosts(stations) {
+            const fuelConsumption = state.consumptionC / 100 || 0.045;
+            const userFuelPrice = stations.length > 0 ? stations[0].price : 1.50; // Usar precio de primera estación como referencia
+            const timeValue = (state.timeValueV / 60) || 0; // Convertir €/h a €/min
+            
+            stations.forEach(st => {
+                st.detourCostEur = calculateDetourCost(st, fuelConsumption, userFuelPrice, timeValue);
+            });
+        }
+
+        // ============================================
+        // UTILIDADES
+        // ============================================
+        function showStatus(message, type = 'info') {
+            const statusBar = document.getElementById('statusBar');
+            const routeMode = state.useRealRoutes ? '🗺️ Rutas reales' : '📍 Distancia aproximada';
+            statusBar.innerHTML = `<div class="status ${type}">${message} <small style="opacity: 0.7">(${routeMode})</small></div>`;
+            if (type === 'success') {
+                setTimeout(() => statusBar.innerHTML = '', 3000);
+            }
+        }
+
+        function showLoading(message) {
+            document.getElementById('stationList').innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div>${message}</div>
+                </div>
+            `;
+        }
+
+        function calculateGeoDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Radio de la Tierra en km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // ============================================
+        // DATA LAYER
+        // ============================================
+        async function fetchStations(lat, lon, radiusKm) {
+            try {
+                showStatus('Obteniendo precios de gasolineras...', 'info');
+                
+                const response = await fetch(CONFIG.PRICES_API);
+                if (!response.ok) throw new Error('Error al obtener precios');
+                
+                const data = await response.json();
+                const stations = data.ListaEESSPrecio || [];
+                
+                // Filtrar por radio y validar datos
+                const filtered = stations
+                    .map(s => ({
+                        id: s.IDEESS,
+                        name: (s['Rótulo'] || 'Sin nombre').trim(),
+                        lat: parseFloat((s['Latitud'] || '').replace(',', '.')),
+                        lon: parseFloat((s['Longitud (WGS84)'] || '').replace(',', '.')),
+                        address: `${s['Dirección'] || ''}, ${s['Localidad'] || ''}`.trim(),
+                        prices: {
+                            sp95: parseFloat((s['Precio Gasolina 95 E5'] || '').replace(',', '.')) || null,
+                            sp98: parseFloat((s['Precio Gasolina 98 E5'] || '').replace(',', '.')) || null,
+                            diesel: parseFloat((s['Precio Gasoleo A'] || '').replace(',', '.')) || null
+                        }
+                    }))
+                    .filter(s => {
+                        if (!s.lat || !s.lon) return false;
+                        const dist = calculateGeoDistance(lat, lon, s.lat, s.lon);
+                        return dist <= radiusKm;
+                    })
+                    .slice(0, CONFIG.MAX_STATIONS);
+                
+                return filtered;
+            } catch (error) {
+                console.error('Error fetching stations:', error);
+                throw error;
+            }
+        }
+
+        async function fetchDrivingMetrics(origin, destinations) {
+            // Verificar si debe usar API real o fallback geodésico
+            if (!state.useRealRoutes || CONFIG.GOOGLE_API_KEY === 'TU_GOOGLE_MAPS_API_KEY') {
+                // Fallback: usar distancia geodésica
+                console.log('📍 Usando distancia geodésica (fallback)');
+                return destinations.map(dest => {
+                    const distKm = calculateGeoDistance(origin.lat, origin.lon, dest.lat, dest.lon);
+                    const distM = distKm * 1000;
+                    const durationS = (distKm / 50) * 3600; // Asume 50 km/h promedio
+                    return { distanceM: distM, durationS: durationS };
+                });
+            }
+
+            try {
+                console.log('🗺️ Usando Google Maps API (rutas reales)');
+                const results = [];
+                
+                // Procesar en lotes
+                for (let i = 0; i < destinations.length; i += CONFIG.BATCH_SIZE) {
+                    const batch = destinations.slice(i, i + CONFIG.BATCH_SIZE);
+                    const destStr = batch.map(d => `${d.lat},${d.lon}`).join('|');
+                    
+                    const url = `${CONFIG.DISTANCE_MATRIX_API}?origins=${origin.lat},${origin.lon}&destinations=${destStr}&mode=driving&key=${CONFIG.GOOGLE_API_KEY}`;
+                    
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error('Error en Distance Matrix API');
+                    
+                    const data = await response.json();
+                    
+                    if (data.status !== 'OK') {
+                        throw new Error(`API status: ${data.status}`);
+                    }
+                    
+                    const rows = data.rows[0].elements;
+                    rows.forEach(element => {
+                        if (element.status === 'OK') {
+                            results.push({
+                                distanceM: element.distance.value,
+                                durationS: element.duration.value
+                            });
+                        } else {
+                            // Fallback a distancia geodésica
+                            const idx = results.length;
+                            const dest = batch[idx];
+                            const distKm = calculateGeoDistance(origin.lat, origin.lon, dest.lat, dest.lon);
+                            results.push({
+                                distanceM: distKm * 1000,
+                                durationS: (distKm / 50) * 3600
+                            });
+                        }
+                    });
+                    
+                    // Evitar rate limiting
+                    if (i + CONFIG.BATCH_SIZE < destinations.length) {
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                    }
+                }
+                
+                return results;
+            } catch (error) {
+                console.warn('Error fetching driving metrics, usando distancia geodésica:', error);
+                // Fallback completo
+                return destinations.map(dest => {
+                    const distKm = calculateGeoDistance(origin.lat, origin.lon, dest.lat, dest.lon);
+                    return {
+                        distanceM: distKm * 1000,
+                        durationS: (distKm / 50) * 3600
+                    };
+                });
+            }
+        }
+
+        function mergeAndComputeCost(stations, metrics, params) {
+            const { fuelType, litersX, consumptionC, timeValueV } = params;
+            
+            const enriched = stations.map((station, idx) => {
+                const metric = metrics[idx];
+                const price = station.prices[fuelType];
+                
+                if (!price || !metric) return null;
+                
+                // Cálculos
+                const D_i = (metric.distanceM / 1000) * 2; // ida y vuelta
+                const T_i = (metric.durationS / 3600) * 2; // ida y vuelta
+                const m_i = price;
+                const n_i = (D_i * consumptionC / 100) * m_i + timeValueV * T_i;
+                const y_i = m_i * litersX + n_i;
+                
+                return {
+                    ...station,
+                    distanceKm: metric.distanceM / 1000,
+                    durationMin: metric.durationS / 60,
+                    price: price,
+                    m: m_i,
+                    n: n_i,
+                    totalCost: y_i,
+                    fuelCostDetour: (D_i * consumptionC / 100) * m_i,
+                    timeCostDetour: timeValueV * T_i
+                };
+            }).filter(s => s !== null);
+            
+            // Ordenar por coste total
+            enriched.sort((a, b) => a.totalCost - b.totalCost);
+            
+            // Calcular puntos de cruce con la mejor opción
+            if (enriched.length > 1) {
+                const best = enriched[0];
+                enriched.forEach((station, idx) => {
+                    if (idx === 0) return;
+                    
+                    const denominator = best.m - station.m;
+                    if (Math.abs(denominator) > 0.001) {
+                        const X_star = (station.n - best.n) / denominator;
+                        
+                        // Solo mostrar si X* es positivo y razonable (entre 1 y 200 litros)
+                        if (X_star > 1 && X_star < 200) {
+                            station.crossoverLiters = X_star;
+                            
+                            // Determinar mensaje según contexto
+                            if (X_star > litersX) {
+                                // La mejor opción es mejor ahora, pero esta será mejor con más litros
+                                station.crossoverMessage = `💡 Esta gasolinera es mejor si repostas más de ${X_star.toFixed(1)}L`;
+                            } else {
+                                // Esta gasolinera es peor incluso para cantidades menores
+                                station.crossoverMessage = `💡 La primera opción es mejor hasta ${X_star.toFixed(1)}L, luego esta`;
+                            }
+                        }
+                    }
+                });
+            }
+            
+            return enriched;
+        }
+
+        // ============================================
+        // LÓGICA PRINCIPAL
+        // ============================================
+        async function getUserLocation() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject(new Error('Geolocalización no disponible'));
+                    return;
+                }
+                
+                showStatus('📍 Obteniendo tu ubicación...', 'info');
+                
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        resolve({
+                            lat: position.coords.latitude,
+                            lon: position.coords.longitude
+                        });
+                    },
+                    error => {
+                        reject(new Error('No se pudo obtener tu ubicación. Verifica los permisos.'));
+                    },
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                );
+            });
+        }
+
+        async function searchStations() {
+            try {
+                state.loading = true;
+                state.error = null;
+                
+                // Obtener ubicación
+                if (!state.location) {
+                    state.location = await getUserLocation();
+                }
+                
+                let candidateStations;
+                
+                if (state.rangeMode === 'km') {
+                    // Búsqueda por kilómetros
+                    showLoading('Buscando gasolineras...');
+                    candidateStations = await fetchStations(
+                        state.location.lat,
+                        state.location.lon,
+                        state.rangeValue
+                    );
+                } else {
+                    // Búsqueda por minutos
+                    showLoading('Buscando gasolineras (modo tiempo)...');
+                    let radius = CONFIG.INITIAL_RADIUS_KM;
+                    candidateStations = [];
+                    
+                    while (candidateStations.length < 10 && radius <= CONFIG.MAX_RADIUS_KM) {
+                        candidateStations = await fetchStations(
+                            state.location.lat,
+                            state.location.lon,
+                            radius
+                        );
+                        if (candidateStations.length < 10) {
+                            radius += 5;
+                        }
+                    }
+                }
+                
+                if (candidateStations.length === 0) {
+                    showStatus('No se encontraron gasolineras en el área seleccionada.', 'error');
+                    document.getElementById('stationList').innerHTML = '<div class="empty-state">No hay gasolineras disponibles</div>';
+                    return;
+                }
+                
+                // Filtrar estaciones sin precio del combustible seleccionado
+                const validStations = candidateStations.filter(s => s.prices[state.fuelType]);
+                
+                if (validStations.length === 0) {
+                    showStatus(`No se encontraron gasolineras con precio de ${state.fuelType}.`, 'error');
+                    document.getElementById('stationList').innerHTML = '<div class="empty-state">No hay precios disponibles</div>';
+                    return;
+                }
+                
+                // Obtener métricas de conducción
+                showLoading('Calculando distancias y tiempos...');
+                const metrics = await fetchDrivingMetrics(state.location, validStations);
+                
+                // Calcular costes
+                showLoading('Calculando costes óptimos...');
+                let enrichedStations = mergeAndComputeCost(validStations, metrics, {
+                    fuelType: state.fuelType,
+                    litersX: state.litersX,
+                    consumptionC: state.consumptionC,
+                    timeValueV: state.timeValueV
+                });
+                
+                // Filtrar por tiempo si es modo minutos
+                if (state.rangeMode === 'min') {
+                    enrichedStations = enrichedStations.filter(s => s.durationMin <= state.rangeValue);
+                }
+                
+                if (enrichedStations.length === 0) {
+                    showStatus('No se encontraron gasolineras dentro del rango de tiempo especificado.', 'error');
+                    document.getElementById('stationList').innerHTML = '<div class="empty-state">Amplía el rango de búsqueda</div>';
+                    return;
+                }
+                
+                state.enrichedStations = enrichedStations;
+                
+                // Calcular costes de desvío y frontera de Pareto
+                updateDetourCosts(enrichedStations);
+                paretoData = calculateParetoFrontier(enrichedStations);
+                
+                renderStations();
+                showStatus(`✅ ${enrichedStations.length} gasolineras encontradas`, 'success');
+                
+                document.getElementById('sortControls').style.display = 'flex';
+                
+            } catch (error) {
+                console.error('Error searching stations:', error);
+                state.error = error.message;
+                showStatus(`❌ Error: ${error.message}`, 'error');
+                document.getElementById('stationList').innerHTML = `
+                    <div class="empty-state">
+                        <p>${error.message}</p>
+                        <button onclick="init()" style="margin-top: 16px;">Reintentar</button>
+                    </div>
+                `;
+            } finally {
+                state.loading = false;
+            }
+        }
+
+        function renderStations() {
+            const sortedStations = [...state.enrichedStations];
+            
+            // Marcar cuál es óptima para cantidad actual
+            if (paretoData) {
+                const litros = state.litersX;
+                sortedStations.forEach(st => {
+                    if (st.inFrontier) {
+                        st.isOptimalForCurrent = (litros >= st.rangeStart && litros < st.rangeEnd);
+                    } else {
+                        st.isOptimalForCurrent = false;
+                    }
+                });
+            }
+            
+            // Ordenar según criterio
+            if (state.sortBy === 'cost' && paretoData) {
+                // Ordenación inteligente por Pareto: óptima → frontera → dominadas
+                const optimal = sortedStations.filter(st => st.isOptimalForCurrent);
+                const frontierOthers = sortedStations.filter(st => st.inFrontier && !st.isOptimalForCurrent);
+                const dominated = sortedStations.filter(st => !st.inFrontier);
+                
+                frontierOthers.sort((a, b) => (a.rangeStart || 0) - (b.rangeStart || 0));
+                dominated.sort((a, b) => a.distanceKm - b.distanceKm);
+                
+                sortedStations.length = 0;
+                sortedStations.push(...optimal, ...frontierOthers, ...dominated);
+            } else if (state.sortBy === 'price') {
+                sortedStations.sort((a, b) => a.price - b.price);
+            } else if (state.sortBy === 'time') {
+                sortedStations.sort((a, b) => a.durationMin - b.durationMin);
+            }
+            // Por defecto 'cost' ya está ordenado por Pareto
+            
+            const html = sortedStations.map((station, idx) => {
+                const isBest = state.sortBy === 'cost' && station.isOptimalForCurrent;
+                const rank = idx + 1;
+                
+                let crossoverHtml = '';
+                if (station.crossoverMessage && state.sortBy !== 'cost' && idx > 0) {
+                    crossoverHtml = `
+                        <div class="crossover-info">
+                            ${station.crossoverMessage}
+                        </div>
+                    `;
+                }
+                
+                // Badge de frontera de Pareto
+                let paretoBadgeHtml = '';
+                if (paretoData && state.sortBy === 'cost') {
+                    let badgeText = '';
+                    let badgeColor = '';
+                    let badgeIcon = '';
+                    
+                    if (station.isOptimalForCurrent) {
+                        badgeText = `⭐ Mejor opción para ${state.litersX} L`;
+                        badgeColor = 'rgba(16, 185, 129, 0.2)';
+                        badgeIcon = '🏆';
+                    } else if (station.inFrontier) {
+                        badgeText = `✨ Mejor para ${station.rangeText}`;
+                        badgeColor = 'rgba(59, 130, 246, 0.2)';
+                        badgeIcon = '📊';
+                    } else if (station.inFrontier === false) {
+                        badgeText = '⚠️ No recomendada - Hay mejores opciones';
+                        badgeColor = 'rgba(239, 68, 68, 0.2)';
+                        badgeIcon = '🚫';
+                    }
+                    
+                    if (badgeText) {
+                        paretoBadgeHtml = `
+                            <div style="margin: 12px 0; padding: 10px 12px; border-radius: 8px; background: ${badgeColor}; border-left: 3px solid ${station.isOptimalForCurrent ? '#10b981' : station.inFrontier ? '#3b82f6' : '#ef4444'}; font-size: 13px; font-weight: 600; color: ${station.isOptimalForCurrent ? '#10b981' : station.inFrontier ? '#3b82f6' : '#ef4444'}; line-height: 1.4;">
+                                ${badgeText}
+                            </div>
+                        `;
+                    }
+                }
+                
+                return `
+                    <div class="station-card ${isBest ? 'best' : ''}">
+                        <div class="station-header">
+                            <div class="station-name">${station.name}</div>
+                            <div class="station-rank ${isBest ? 'best' : ''}">#${rank}</div>
+                        </div>
+                        
+                        ${paretoBadgeHtml}
+                        
+                        <div class="station-info">
+                            <div class="info-item">
+                                <span class="info-label">Precio</span>
+                                <span class="info-value">${station.price.toFixed(3)} €/L</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Distancia</span>
+                                <span class="info-value">${station.distanceKm.toFixed(1)} km</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Tiempo</span>
+                                <span class="info-value">${Math.round(station.durationMin)} min</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Coste combustible</span>
+                                <span class="info-value">${(station.price * state.litersX).toFixed(2)} €</span>
+                            </div>
+                        </div>
+                        
+                        <div class="total-cost">
+                            <div style="color: #666; font-size: 14px; margin-bottom: 4px;">Coste Total (${state.litersX}L)</div>
+                            <div class="total-cost-value">${station.totalCost.toFixed(2)} €</div>
+                            <div class="cost-breakdown">
+                                Desvío: ${station.fuelCostDetour.toFixed(2)} € combustible${
+                                    state.timeValueV > 0 ? ` + ${station.timeCostDetour.toFixed(2)} € tiempo` : ''
+                                }
+                            </div>
+                        </div>
+                        
+                        ${crossoverHtml}
+                        
+                        <div class="station-actions">
+                            <button class="btn-nav" onclick="navigateTo(${station.lat}, ${station.lon})">
+                                🗺️ Ir (Google Maps)
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.getElementById('stationList').innerHTML = html || '<div class="empty-state">No hay resultados</div>';
+        }
+
+        function navigateTo(lat, lon) {
+            const origin = `${state.location.lat},${state.location.lon}`;
+            const destination = `${lat},${lon}`;
+            const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=driving`;
+            window.open(url, '_blank');
+        }
+
+        // ============================================
+        // EVENT HANDLERS
+        // ============================================
+        function setLiters(amount) {
+            document.getElementById('litersX').value = amount;
+            state.litersX = amount;
+            recalculate();
+        }
+
+        function toggleAdvanced() {
+            const content = document.getElementById('advancedContent');
+            content.classList.toggle('show');
+        }
+
+        const recalculate = debounce(() => {
+            if (state.enrichedStations.length > 0) {
+                const validStations = state.enrichedStations.map(s => ({
+                    ...s,
+                    prices: { [state.fuelType]: s.price }
+                }));
+                
+                const metrics = state.enrichedStations.map(s => ({
+                    distanceM: s.distanceKm * 1000,
+                    durationS: s.durationMin * 60
+                }));
+                
+                state.enrichedStations = mergeAndComputeCost(validStations, metrics, {
+                    fuelType: state.fuelType,
+                    litersX: state.litersX,
+                    consumptionC: state.consumptionC,
+                    timeValueV: state.timeValueV
+                });
+                
+                // Recalcular Pareto al cambiar parámetros
+                updateDetourCosts(state.enrichedStations);
+                paretoData = calculateParetoFrontier(state.enrichedStations);
+                
+                renderStations();
+            }
+        }, 300);
+
+        function setupEventListeners() {
+            document.getElementById('fuelType').addEventListener('change', (e) => {
+                state.fuelType = e.target.value;
+                init();
+            });
+            
+            document.getElementById('rangeModeKm').addEventListener('click', () => {
+                state.rangeMode = 'km';
+                document.getElementById('rangeModeKm').classList.add('active');
+                document.getElementById('rangeModeMin').classList.remove('active');
+                document.getElementById('rangeIndicator').classList.remove('mode-min');
+                document.getElementById('rangeValue').value = 10;
+                state.rangeValue = 10;
+            });
+            
+            document.getElementById('rangeModeMin').addEventListener('click', () => {
+                state.rangeMode = 'min';
+                document.getElementById('rangeModeMin').classList.add('active');
+                document.getElementById('rangeModeKm').classList.remove('active');
+                document.getElementById('rangeIndicator').classList.add('mode-min');
+                document.getElementById('rangeValue').value = 10;
+                state.rangeValue = 10;
+            });
+            
+            document.getElementById('rangeValue').addEventListener('change', (e) => {
+                state.rangeValue = parseFloat(e.target.value) || 1;
+                init();
+            });
+            
+            document.getElementById('litersX').addEventListener('input', (e) => {
+                state.litersX = parseFloat(e.target.value) || 0;
+                recalculate();
+            });
+            
+            document.getElementById('consumptionC').addEventListener('input', (e) => {
+                state.consumptionC = parseFloat(e.target.value) || 0;
+                recalculate();
+            });
+            
+            document.getElementById('timeValueV').addEventListener('input', (e) => {
+                state.timeValueV = parseFloat(e.target.value) || 0;
+                recalculate();
+            });
+            
+            document.getElementById('sortCost').addEventListener('click', () => {
+                state.sortBy = 'cost';
+                updateSortButtons();
+                renderStations();
+            });
+            
+            document.getElementById('sortPrice').addEventListener('click', () => {
+                state.sortBy = 'price';
+                updateSortButtons();
+                renderStations();
+            });
+            
+            document.getElementById('sortTime').addEventListener('click', () => {
+                state.sortBy = 'time';
+                updateSortButtons();
+                renderStations();
+            });
+            
+            // Listeners para recalcular Pareto cuando cambien parámetros avanzados
+            // (ya están los inputs con recalculate(), solo aseguramos que actualice Pareto)
+        }
+
+        function updateSortButtons() {
+            document.getElementById('sortCost').classList.toggle('active', state.sortBy === 'cost');
+            document.getElementById('sortPrice').classList.toggle('active', state.sortBy === 'price');
+            document.getElementById('sortTime').classList.toggle('active', state.sortBy === 'time');
+        }
+
+        // ============================================
+        // INICIALIZACIÓN
+        // ============================================
+        async function init() {
+            await searchStations();
+        }
+
+        // Registrar Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(reg => console.log('Service Worker registrado:', reg.scope))
+                    .catch(err => console.log('Error al registrar Service Worker:', err));
+            });
+        }
+
+        // Iniciar app
+        setupEventListeners();
+        init();
+
+        // HELPER para generar tu hash personalizado (solo para desarrollo)
+        // Abre la consola (F12) y escribe: await generateMyHash('tuCodigoSecreto')
+        // Luego copia el resultado y reemplaza SECRET_HASH
+        window.generateMyHash = async function(code) {
+            const hash = await hashCode(code);
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            console.log('✅ Tu código:', code);
+            console.log('🔐 Tu hash:', hash);
+            console.log('');
+            console.log('📝 Copia este valor y reemplaza SECRET_HASH en el código:');
+            console.log(`SECRET_HASH: '${hash}',`);
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            return hash;
+        };
+    </script>
+</body>
+</html>
