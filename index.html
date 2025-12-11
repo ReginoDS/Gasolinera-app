@@ -6,7 +6,6 @@
     <meta name="theme-color" content="#1a73e8">
     <title>Gasolineras Cercanas</title>
     <link rel="manifest" href="manifest.webmanifest">
-
     <style>
         /* Variables CSS para espaciados - COMPACTO */
         :root {
@@ -17,11 +16,7 @@
             --input-padding: 5px 8px;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -117,17 +112,9 @@
             min-height: unset;
         }
 
-        button:hover {
-            background: #059669;
-            transform: translateY(-1px);
-        }
+        button:hover { background: #059669; transform: translateY(-1px); }
+        button:disabled { background: #334155; cursor: not-allowed; }
 
-        button:disabled {
-            background: #334155;
-            cursor: not-allowed;
-        }
-
-        /* Toggle para rango km/min */
         .range-toggle {
             display: flex;
             background: #1e293b;
@@ -151,9 +138,7 @@
             box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
         }
 
-        .range-toggle-indicator.mode-min {
-            transform: translateX(calc(100% + 2px));
-        }
+        .range-toggle-indicator.mode-min { transform: translateX(calc(100% + 2px)); }
 
         .range-toggle button {
             flex: 1;
@@ -166,21 +151,11 @@
             min-height: unset;
         }
 
-        .range-toggle button:hover {
-            transform: none;
-        }
+        .range-toggle button:hover { transform: none; }
+        .range-toggle button.active { color: white; font-weight: 600; }
 
-        .range-toggle button.active {
-            color: white;
-            font-weight: 600;
-        }
+        #rangeValue { flex: 1; text-align: center; }
 
-        #rangeValue {
-            flex: 1;
-            text-align: center;
-        }
-
-        /* Presets de litros */
         .liters-presets {
             display: flex;
             background: #1e293b;
@@ -206,24 +181,10 @@
             pointer-events: none;
         }
 
-        .liters-presets-indicator.liters-15 {
-            transform: translateX(0);
-            opacity: 1;
-        }
-
-        .liters-presets-indicator.liters-30 {
-            transform: translateX(calc(100% + 2px));
-            opacity: 1;
-        }
-
-        .liters-presets-indicator.liters-50 {
-            transform: translateX(calc(200% + 4px));
-            opacity: 1;
-        }
-
-        .liters-presets-indicator.liters-none {
-            opacity: 0;
-        }
+        .liters-presets-indicator.liters-15 { transform: translateX(0); opacity: 1; }
+        .liters-presets-indicator.liters-30 { transform: translateX(calc(100% + 2px)); opacity: 1; }
+        .liters-presets-indicator.liters-50 { transform: translateX(calc(200% + 4px)); opacity: 1; }
+        .liters-presets-indicator.liters-none { opacity: 0; }
 
         .liters-presets button {
             flex: 1;
@@ -236,23 +197,12 @@
             z-index: 1;
         }
 
-        .liters-presets button:hover {
-            color: #f1f5f9;
-            background: transparent;
-            transform: none;
-        }
+        .liters-presets button:hover { color: #f1f5f9; background: transparent; transform: none; }
+        .liters-presets button.active { color: white; font-weight: 600; }
 
-        .liters-presets button.active {
-            color: white;
-            font-weight: 600;
-        }
+        #litersX { flex: 1; text-align: center; }
 
-        #litersX {
-            flex: 1;
-            text-align: center;
-        }
 
-        /* Toggle para valor del tiempo (céntimos/euros) */
         .time-value-toggle {
             display: flex;
             background: #1e293b;
@@ -300,48 +250,121 @@
             font-weight: 600;
         }
 
-        /* Opciones avanzadas */
-        .advanced {
-            background: rgba(30, 41, 59, 0.5);
-            padding: 3px 8px;
-            border-radius: 8px;
+        .header-unified {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             border: 1px solid #334155;
-            margin-top: 0;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .advanced-toggle {
-            background: transparent;
-            color: #94a3b8;
-            padding: 2px 6px;
-            font-size: clamp(10px, 2.5vw, 11px);
-            border: none;
+        .header {
+            color: white;
+            padding: 6px 12px 8px 12px;
+        }
+
+        .header-separator {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #334155 20%, #334155 80%, transparent);
+            margin: 6px 0;
+        }
+
+        .controls-summary {
+            padding: 8px 14px;
+            text-align: center;
+            font-size: clamp(11px, 3vw, 13px);
+            color: #cbd5e1;
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 8px;
+            line-height: 1.5;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+
+        .controls-summary .separator {
+            margin: 0 6px;
+            color: #64748b;
+            font-weight: 300;
+        }
+
+        .controls-full {
             display: flex;
-            align-items: center;
-            gap: 6px;
+            flex-direction: column;
+            gap: var(--spacing-between-rows);
+            max-height: 500px;
+            overflow: hidden;
+            opacity: 1;
+            transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+        }
+
+        .header-unified.collapsed .controls-summary {
+            opacity: 1;
+        }
+
+        .header-unified.collapsed .controls-full {
+            max-height: 0;
+            opacity: 0;
+            margin: 0;
+        }
+
+        .header-unified.expanded .controls-summary {
+            opacity: 0;
+            max-height: 0;
+            padding: 0;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .header-unified.expanded .controls-full {
+            max-height: 500px;
+            opacity: 1;
+        }
+
+        .sort-controls {
+            padding: 6px 12px 4px 12px;
+        }
+
+        .controls-toggle-container {
+            display: flex;
+            justify-content: center;
+            padding: 6px 0 10px 0;
+        }
+
+        .controls-toggle-btn {
+            background: transparent;
+            border: none;
+            color: #94a3b8;
+            font-size: 20px;
+            padding: 4px 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
             min-height: unset;
         }
 
-        .advanced-toggle:hover {
+        .controls-toggle-btn:hover {
             color: #3b82f6;
-            transform: none;
+            transform: scale(1.15);
         }
 
-        .advanced-content {
-            display: none;
-            margin-top: 6px;
-            gap: 6px;
+        @media (max-width: 480px) {
+            .controls-summary {
+                font-size: 10px;
+                padding: 6px 8px;
+            }
         }
 
-        .advanced-content.show {
-            display: flex;
-            flex-direction: column;
-        }
 
-        .advanced-content .control-row {
-            gap: 6px;
-        }
 
-        /* Controles de ordenación */
+        .advanced-toggle:hover { color: #3b82f6; transform: none; }
+
+
+        .advanced-content.show { display: flex; flex-direction: column; }
+        .advanced-content .control-row { gap: 6px; }
+
         .sort-controls {
             display: flex !important;
             gap: 6px;
@@ -360,19 +383,9 @@
             min-height: unset;
         }
 
-        .sort-controls button:hover {
-            background: #334155;
-            color: #f1f5f9;
-            transform: none;
-        }
+        .sort-controls button:hover { background: #334155; color: #f1f5f9; transform: none; }
+        .sort-controls button.active { background: #3b82f6; color: white; border-color: #3b82f6; }
 
-        .sort-controls button.active {
-            background: #3b82f6;
-            color: white;
-            border-color: #3b82f6;
-        }
-
-        /* Status bar */
         .status {
             padding: 12px 14px;
             background: rgba(251, 191, 36, 0.1);
@@ -382,17 +395,9 @@
             font-size: 14px;
         }
 
-        .status.error {
-            background: rgba(239, 68, 68, 0.1);
-            border-color: #ef4444;
-        }
+        .status.error { background: rgba(239, 68, 68, 0.1); border-color: #ef4444; }
+        .status.success { background: rgba(16, 185, 129, 0.1); border-color: #10b981; }
 
-        .status.success {
-            background: rgba(16, 185, 129, 0.1);
-            border-color: #10b981;
-        }
-
-        /* Lista de gasolineras */
         .station-list {
             padding: 0 12px 20px 12px;
             margin-top: var(--spacing-header-content);
@@ -408,27 +413,11 @@
             transition: all 0.3s ease;
         }
 
-        .station-card:hover {
-            transform: translateY(-2px);
-            border-color: #3b82f6;
-        }
+        .station-card:hover { transform: translateY(-2px); border-color: #3b82f6; }
+        .station-card.best { border: 2px solid #10b981; background: linear-gradient(135deg, #1e293b 0%, #1a3a2e 100%); }
 
-        .station-card.best {
-            border: 2px solid #10b981;
-            background: linear-gradient(135deg, #1e293b 0%, #1a3a2e 100%);
-        }
-
-        .station-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 12px;
-        }
-
-        .station-name {
-            font-weight: 600;
-            font-size: 17px;
-            flex: 1;
-        }
+        .station-header { display: flex; justify-content: space-between; margin-bottom: 12px; }
+        .station-name { font-weight: 600; font-size: 17px; flex: 1; }
 
         .station-rank {
             background: #3b82f6;
@@ -439,9 +428,7 @@
             font-weight: 700;
         }
 
-        .station-rank.best {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-        }
+        .station-rank.best { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
 
         .station-info {
             display: grid;
@@ -450,22 +437,9 @@
             margin: 14px 0;
         }
 
-        .info-item {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .info-label {
-            color: #94a3b8;
-            font-size: 12px;
-            text-transform: uppercase;
-        }
-
-        .info-value {
-            font-weight: 700;
-            font-size: 17px;
-        }
+        .info-item { display: flex; flex-direction: column; gap: 4px; }
+        .info-label { color: #94a3b8; font-size: 12px; text-transform: uppercase; }
+        .info-value { font-weight: 700; font-size: 17px; }
 
         .total-cost {
             background: rgba(59, 130, 246, 0.1);
@@ -475,17 +449,8 @@
             border: 1px solid rgba(59, 130, 246, 0.2);
         }
 
-        .total-cost-value {
-            font-size: 24px;
-            font-weight: 800;
-            color: #3b82f6;
-        }
-
-        .cost-breakdown {
-            font-size: 12px;
-            color: #94a3b8;
-            margin-top: 6px;
-        }
+        .total-cost-value { font-size: 24px; font-weight: 800; color: #3b82f6; }
+        .cost-breakdown { font-size: 12px; color: #94a3b8; margin-top: 6px; }
 
         .crossover-info {
             background: rgba(251, 191, 36, 0.1);
@@ -497,21 +462,9 @@
             color: #fbbf24;
         }
 
-        .station-actions {
-            display: flex;
-            gap: 8px;
-            margin-top: 14px;
-        }
-
-        .btn-nav {
-            flex: 1;
-            background: #3b82f6;
-            border-radius: 10px;
-        }
-
-        .btn-nav:hover {
-            background: #2563eb;
-        }
+        .station-actions { display: flex; gap: 8px; margin-top: 14px; }
+        .btn-nav { flex: 1; background: #3b82f6; border-radius: 10px; }
+        .btn-nav:hover { background: #2563eb; }
 
         .refresh-btn {
             position: fixed;
@@ -529,116 +482,101 @@
             z-index: 99;
         }
 
-        .refresh-btn:hover {
-            width: 52px;
-            height: 52px;
-        }
+        .refresh-btn:hover { width: 52px; height: 52px; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="header-title-row">
-            <h1>⛽ Gasolineras Cercanas</h1>
-            <button onclick="enableRealRoutes()" class="header-lock-btn">🔓</button>
-        </div>
-
-        <div class="controls">
-            <!-- Combustible -->
-            <div class="control-row">
-                <label>Combustible</label>
-                <select id="fuelType">
-                    <option value="sp95">Gasolina 95</option>
-                    <option value="sp98">Gasolina 98</option>
-                    <option value="diesel">Diésel</option>
-                </select>
-            </div>
-
-            <!-- Rango -->
-            <div class="control-row">
-                <label>Rango</label>
-                <div class="range-toggle">
-                    <div class="range-toggle-indicator" id="rangeIndicator"></div>
-                    <button id="rangeModeKm" class="active">Km</button>
-                    <button id="rangeModeMin">Min</button>
+        <div class="header-unified collapsed" id="headerUnified">
+            <div class="header">
+                <div class="header-title-row">
+                    <h1>⛽ Gasolineras Cercanas</h1>
+                    <button onclick="enableRealRoutes()" class="header-lock-btn">🔓</button>
                 </div>
-                <input type="number" id="rangeValue" value="10" min="1" max="50">
-            </div>
 
-            <!-- Litros -->
-            <div class="control-row">
-                <label>Litros</label>
-                <input type="number" id="litersX" value="30" min="1" max="100" style="max-width: 80px;">
-                <div class="liters-presets">
-                    <div class="liters-presets-indicator liters-none" id="litersIndicator"></div>
-                    <button onclick="setLiters(15)">15L</button>
-                    <button onclick="setLiters(30)">30L</button>
-                    <button onclick="setLiters(50)">50L</button>
+                <div class="header-separator"></div>
+
+                <div class="controls-summary" id="controlsSummary">
+                    <span id="summaryText"></span>
                 </div>
-            </div>
 
-            <!-- Opciones avanzadas -->
-            <div class="advanced">
-                <button class="advanced-toggle" onclick="toggleAdvanced()">⚙️ Opciones avanzadas</button>
-                <div class="advanced-content" id="advancedContent">
-                    <!-- Consumo -->
+                <div class="controls-full" id="controlsFull">
                     <div class="control-row">
-                        <label>Consumo L/100km</label>
+                        <label>Combustible:</label>
+                        <select id="fuelType">
+                            <option value="sp95">Gasolina 95</option>
+                            <option value="sp98">Gasolina 98</option>
+                            <option value="diesel">Diésel</option>
+                        </select>
+                    </div>
+                    <div class="control-row">
+                        <label>Rango:</label>
+                        <div class="range-toggle">
+                            <div class="range-toggle-indicator" id="rangeIndicator"></div>
+                            <button id="rangeModeKm" class="active">Km</button>
+                            <button id="rangeModeMin">Min</button>
+                        </div>
+                        <input type="number" id="rangeValue" value="10" min="1" max="50">
+                    </div>
+                    <div class="control-row">
+                        <label>Litros:</label>
+                        <input type="number" id="litersX" value="30" min="1" max="100" style="max-width: 80px;">
+                        <div class="liters-presets">
+                            <div class="liters-presets-indicator liters-none" id="litersIndicator"></div>
+                            <button onclick="setLiters(15)">15L</button>
+                            <button onclick="setLiters(30)">30L</button>
+                            <button onclick="setLiters(50)">50L</button>
+                        </div>
+                    </div>
+                    <div class="control-row">
+                        <label>Consumo L/100km:</label>
                         <input type="number" id="consumptionC" value="4.5" min="3" max="20" step="0.1">
                     </div>
-
-                    <!-- NUEVO: Valor del tiempo con frase completa -->
-                    <div class="control-row" style="flex-direction: column; align-items: flex-start; gap: 4px;">
-                        <label>Valor de tu tiempo</label>
-                        <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-size: clamp(11px, 3vw, 12px); color: #cbd5e1; line-height: 1.4;">
-                            <span style="white-space: nowrap;">Acepto ir 1 min más lejos por</span>
-                            <input 
-                                type="number" 
-                                id="timeValue" 
-                                value="5" 
-                                min="0" 
-                                max="100" 
-                                step="0.5"
-                                style="width: 55px; text-align: center; padding: 4px 6px; flex-shrink: 0;"
-                            />
-                            <div class="time-value-toggle">
-                                <div class="time-value-toggle-indicator" id="timeValueIndicator"></div>
-                                <button id="timeValueCents" class="active">cént</button>
-                                <button id="timeValueEuros">€</button>
-                            </div>
-                            <span style="white-space: nowrap;">de ahorro</span>
+                    <div class="control-row">
+                        <span style="font-size: clamp(11px, 3vw, 12px); color: #cbd5e1; white-space: nowrap;">Iría 1 min más lejos si ahorro al menos</span>
+                        <input type="number" id="timeValue" value="5" min="0" max="100" step="0.5" style="width: 50px; text-align: center;"/>
+                        <div class="time-value-toggle">
+                            <div class="time-value-toggle-indicator" id="timeValueIndicator"></div>
+                            <button id="timeValueCents" class="active">cént</button>
+                            <button id="timeValueEuros">€</button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Controles de ordenación -->
-            <div class="sort-controls" id="sortControls" style="display: none;">
+            <div class="sort-controls" id="sortControls">
                 <button id="sortRecommended" class="active">⭐ Recomendada</button>
                 <button id="sortPrice">💰 Precio</button>
                 <button id="sortTime">⏱️ Tiempo</button>
             </div>
-        </div>
-    </div>
 
+            <div class="controls-toggle-container">
+                <button class="controls-toggle-btn" id="controlsToggleBtn" onclick="toggleControls()">
+                    <span id="toggleIcon">▼</span>
+                </button>
+            </div>
+        </div>
     <div id="statusBar"></div>
+
+    
+
     <div class="station-list" id="stationList"></div>
 
     <button class="refresh-btn" id="refreshBtn" onclick="init()">🔄</button>
 
     <script>
-        /* ========================================
-           CONFIGURACIÓN
-        ======================================== */
+        // ============================================
+        // CONFIGURACIÓN
+        // ============================================
         const CONFIG = {
             // API de precios del Ministerio (datos abiertos)
             PRICES_API: 'https://sedeaplicaciones.minetur.gob.es/ServiciosRESTCarburantes/PreciosCarburantes/EstacionesTerrestres/',
             
-            // Google Maps API - REEMPLAZAR CON TU CLAVE
+            // Google Maps API (REEMPLAZAR CON TU CLAVE)
             GOOGLE_API_KEY: 'TU_GOOGLE_MAPS_API_KEY',
             DISTANCE_MATRIX_API: 'https://maps.googleapis.com/maps/api/distancematrix/json',
             
             // Hash SHA-256 del código secreto (no el código en sí)
-            // Para generar tu hash, abre consola y escribe: await hashCode("tuCodigoSecreto")
+            // Para generar tu hash: abre consola y escribe: await hashCode('tuCodigoSecreto')
             SECRET_HASH: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', // Hash de "miCodigo123"
             
             // Límites de búsqueda
@@ -656,19 +594,20 @@
                 rangeValue: 10,
                 litersX: 30,
                 consumptionC: 4.5,
-                timeValue: 5,           // Valor numérico por defecto
-                timeValueUnit: 'cents'  // 'cents' o 'euros'
+                timeValue: 5,
+                timeValueUnit: 'cents'
             }
         };
 
+        // Flag de desarrollo
         const DEBUG = false;
 
         // Variable global para almacenar datos de Pareto
         let paretoData = null;
 
-        /* ========================================
-           ESTADO GLOBAL
-        ======================================== */
+        // ============================================
+        // ESTADO GLOBAL
+        // ============================================
         let state = {
             location: null,
             fuelType: CONFIG.DEFAULTS.fuelType,
@@ -678,6 +617,7 @@
             consumptionC: CONFIG.DEFAULTS.consumptionC,
             timeValue: CONFIG.DEFAULTS.timeValue,
             timeValueUnit: CONFIG.DEFAULTS.timeValueUnit,
+            controlsExpanded: false,
             stations: [],
             enrichedStations: [],
             sortBy: 'recomendado',
@@ -686,9 +626,6 @@
             useRealRoutes: false // Por defecto usa geodésica
         };
 
-        /* ========================================
-           FUNCIONES DE SEGURIDAD
-        ======================================== */
         // Verificar si hay código secreto guardado
         async function checkSecretCode() {
             const savedHash = localStorage.getItem('apiAccessHash');
@@ -709,10 +646,11 @@
 
         // Función para activar API (solo para ti)
         async function enableRealRoutes() {
-            const code = prompt('Código de acceso para rutas precisas:');
+            const code = prompt('🔐 Código de acceso para rutas precisas:');
             if (code === null) return; // Usuario canceló
             
             const inputHash = await hashCode(code);
+            
             if (inputHash === CONFIG.SECRET_HASH) {
                 localStorage.setItem('apiAccessHash', inputHash);
                 state.useRealRoutes = true;
@@ -726,26 +664,45 @@
         // Verificar código al cargar
         checkSecretCode();
 
-        /* ========================================
-           CONVERSIÓN DE VALOR DEL TIEMPO
-        ======================================== */
         function timeValueToEuroPerHour(value, unit) {
-            if (unit === 'cents') {
-                // céntimos/min → €/hora
-                return (value * 60) / 100;
-            } else {
-                // €/min → €/hora
-                return value * 60;
-            }
+            return unit === 'cents' ? (value * 60) / 100 : value * 60;
         }
 
-        /* ========================================
-           ALGORITMO DE FRONTERA DE PARETO
-        ======================================== */
+        function toggleControls() {
+            state.controlsExpanded = !state.controlsExpanded;
+            const headerUnified = document.getElementById('headerUnified');
+            const icon = document.getElementById('toggleIcon');
+
+            if (state.controlsExpanded) {
+                headerUnified.classList.remove('collapsed');
+                headerUnified.classList.add('expanded');
+                icon.textContent = '▲';
+            } else {
+                updateSummary();
+                headerUnified.classList.remove('expanded');
+                headerUnified.classList.add('collapsed');
+                icon.textContent = '▼';
+            }
+            localStorage.setItem('controlsExpanded', state.controlsExpanded);
+        }
+
+        function updateSummary() {
+            const fuelTypes = {'sp95': 'Gasolina 95', 'sp98': 'Gasolina 98', 'diesel': 'Diésel'};
+            const fuelText = fuelTypes[state.fuelType] || state.fuelType;
+            const rangeText = state.rangeMode === 'km' ? `En ${state.rangeValue} km a la redonda` : `A ${state.rangeValue} min de distancia`;
+            const summaryHTML = `<span>${fuelText}</span><span class="separator">•</span><span>${rangeText}</span><span class="separator">•</span><span>${state.litersX}L</span>`;
+            const el = document.getElementById('summaryText');
+            if (el) el.innerHTML = summaryHTML;
+        }
+
+        // ============================================
+        // ALGORITMO DE FRONTERA DE PARETO
+        // ============================================
+
         /**
-         * Calcula la frontera de Pareto (gasolineras no dominadas) y sus rangos óptimos
+         * Calcula la frontera de Pareto: gasolineras no dominadas y sus rangos óptimos
          * @param {Array} stations - Array de gasolineras con m (precio) y n (coste desvío)
-         * @returns {Object} {frontier: Array, dominated: Array}
+         * @returns {Object} { frontier: Array, dominated: Array }
          */
         function calculateParetoFrontier(stations) {
             if (stations.length === 0) return { frontier: [], dominated: [] };
@@ -767,8 +724,10 @@
                 for (let j = 0; j < stations.length; j++) {
                     if (i === j) continue;
                     const other = stations[j];
-                    // 'other' domina a 'st' si es igual o mejor en ambas dimensiones
-                    if (other.m <= st.m && other.n <= st.n && (other.m < st.m || other.n < st.n)) {
+                    // other domina a st si es igual o mejor en ambas dimensiones
+                    if (other.m <= st.m && 
+                        other.n <= st.n &&
+                        (other.m < st.m || other.n < st.n)) {
                         isDominated = true;
                         break;
                     }
@@ -805,7 +764,7 @@
                 const next = frontier[i + 1];
                 const priceDiff = next.m - current.m;
                 const costDiff = current.n - next.n;
-
+                
                 if (Math.abs(priceDiff) > 0.0001) {
                     const crossoverLiters = costDiff / priceDiff;
                     crossovers.push(crossoverLiters);
@@ -817,12 +776,11 @@
 
             // IMPORTANTE: Los cruces DEBEN estar en orden DECRECIENTE
             // porque frontier está ordenada por precio creciente
-
-            // Verificar para debug
+            // Verificar (para debug)
             for (let i = 0; i < crossovers.length - 1; i++) {
                 if (crossovers[i] !== null && crossovers[i + 1] !== null) {
                     if (crossovers[i] < crossovers[i + 1]) {
-                        if (DEBUG) console.error("⚠️ ERROR: Cruces en orden incorrecto", {
+                        if (DEBUG) console.error('⚠️ ERROR: Cruces en orden incorrecto', {
                             cruces: crossovers,
                             frontera: frontier.map(f => ({ nombre: f.name, m: f.m, n: f.n }))
                         });
@@ -836,39 +794,42 @@
                     // Gasolinera más BARATA (índice 0)
                     // Óptima para repostajes GRANDES: desde primer cruce hasta infinito
                     const cruce = crossovers[0];
-                    frontier[i].rangeStart = (cruce !== null && cruce > 0) ? cruce : 0;
+                    frontier[i].rangeStart = cruce !== null && cruce > 0 ? cruce : 0;
                     frontier[i].rangeEnd = Infinity;
                     
                     if (frontier[i].rangeStart > 100) {
-                        frontier[i].rangeText = `repostajes muy grandes (>${frontier[i].rangeStart.toFixed(0)}L)`;
+                        frontier[i].rangeText = `repostajes muy grandes (>${frontier[i].rangeStart.toFixed(0)} L)`;
                     } else if (frontier[i].rangeStart > 0) {
-                        frontier[i].rangeText = `más de ${frontier[i].rangeStart.toFixed(1)}L`;
+                        frontier[i].rangeText = `más de ${frontier[i].rangeStart.toFixed(1)} L`;
                     } else {
                         frontier[i].rangeText = "cualquier cantidad";
                     }
+                    
                 } else if (i === frontier.length - 1) {
                     // Gasolinera más CARA (último índice)
                     // Óptima para repostajes PEQUEÑOS: desde 0 hasta último cruce
                     const cruce = crossovers[i - 1];
                     frontier[i].rangeStart = 0;
-                    frontier[i].rangeEnd = (cruce !== null && cruce > 0) ? cruce : Infinity;
+                    frontier[i].rangeEnd = cruce !== null && cruce > 0 ? cruce : Infinity;
                     
                     if (frontier[i].rangeEnd === Infinity) {
                         frontier[i].rangeText = "cualquier cantidad";
                     } else {
-                        frontier[i].rangeText = `menos de ${frontier[i].rangeEnd.toFixed(1)}L`;
+                        frontier[i].rangeText = `menos de ${frontier[i].rangeEnd.toFixed(1)} L`;
                     }
+                    
                 } else {
-                    // Gasolineras INTERMEDIAS: óptimas entre dos cruces
+                    // Gasolineras INTERMEDIAS
+                    // Óptimas entre dos cruces
                     const cruceInferior = crossovers[i]; // Cruce con la siguiente (más cara)
                     const cruceSuperior = crossovers[i - 1]; // Cruce con la anterior (más barata)
                     
-                    frontier[i].rangeStart = (cruceInferior !== null && cruceInferior > 0) ? cruceInferior : 0;
-                    frontier[i].rangeEnd = (cruceSuperior !== null && cruceSuperior > 0) ? cruceSuperior : Infinity;
+                    frontier[i].rangeStart = cruceInferior !== null && cruceInferior > 0 ? cruceInferior : 0;
+                    frontier[i].rangeEnd = cruceSuperior !== null && cruceSuperior > 0 ? cruceSuperior : Infinity;
                     
-                    // Validar que rangeStart <= rangeEnd
-                    if (frontier[i].rangeStart > frontier[i].rangeEnd && frontier[i].rangeEnd !== Infinity) {
-                        if (DEBUG) console.error("⚠️ ERROR: Rango inválido", {
+                    // Validar que rangeStart < rangeEnd
+                    if (frontier[i].rangeStart >= frontier[i].rangeEnd && frontier[i].rangeEnd !== Infinity) {
+                        if (DEBUG) console.error('⚠️ ERROR: Rango inválido', {
                             gasolinera: frontier[i].name,
                             rangeStart: frontier[i].rangeStart,
                             rangeEnd: frontier[i].rangeEnd,
@@ -879,9 +840,9 @@
                     }
                     
                     if (frontier[i].rangeEnd === Infinity) {
-                        frontier[i].rangeText = `más de ${frontier[i].rangeStart.toFixed(1)}L`;
+                        frontier[i].rangeText = `más de ${frontier[i].rangeStart.toFixed(1)} L`;
                     } else {
-                        frontier[i].rangeText = `entre ${frontier[i].rangeStart.toFixed(1)} y ${frontier[i].rangeEnd.toFixed(1)}L`;
+                        frontier[i].rangeText = `entre ${frontier[i].rangeStart.toFixed(1)} y ${frontier[i].rangeEnd.toFixed(1)} L`;
                     }
                 }
             }
@@ -896,14 +857,13 @@
             return { frontier, dominated };
         }
 
-        /* ========================================
-           UTILIDADES
-        ======================================== */
+        // ============================================
+        // UTILIDADES
+        // ============================================
         function showStatus(message, type = 'info') {
             const statusBar = document.getElementById('statusBar');
-            const routeMode = state.useRealRoutes ? '🗺️ Rutas reales' : '📏 Distancia aproximada';
-            statusBar.innerHTML = `<div class="status ${type}">${message} <small style="opacity: 0.7;">${routeMode}</small></div>`;
-            
+            const routeMode = state.useRealRoutes ? '🗺️ Rutas reales' : '📍 Distancia aproximada';
+            statusBar.innerHTML = `<div class="status ${type}">${message} <small style="opacity: 0.7">(${routeMode})</small></div>`;
             if (type === 'success') {
                 setTimeout(() => statusBar.innerHTML = '', 3000);
             }
@@ -941,31 +901,31 @@
             };
         }
 
-        /* ========================================
-           DATA LAYER
-        ======================================== */
+        // ============================================
+        // DATA LAYER
+        // ============================================
         async function fetchStations(lat, lon, radiusKm) {
             try {
                 showStatus('Obteniendo precios de gasolineras...', 'info');
-                const response = await fetch(CONFIG.PRICES_API);
                 
+                const response = await fetch(CONFIG.PRICES_API);
                 if (!response.ok) throw new Error('Error al obtener precios');
                 
                 const data = await response.json();
-                const stations = data.ListaEESSPrecio;
+                const stations = data.ListaEESSPrecio || [];
                 
                 // Filtrar por radio y validar datos
                 const filtered = stations
                     .map(s => ({
-                        id: s['IDEESS'],
+                        id: s.IDEESS,
                         name: (s['Rótulo'] || 'Sin nombre').trim(),
-                        lat: parseFloat(s['Latitud (WGS84)'].replace(',', '.')),
-                        lon: parseFloat(s['Longitud (WGS84)'].replace(',', '.')),
-                        address: `${s['Dirección']}, ${s['Localidad']}`.trim(),
+                        lat: parseFloat((s['Latitud'] || '').replace(',', '.')),
+                        lon: parseFloat((s['Longitud (WGS84)'] || '').replace(',', '.')),
+                        address: `${s['Dirección'] || ''}, ${s['Localidad'] || ''}`.trim(),
                         prices: {
-                            sp95: parseFloat(s['Precio Gasolina 95 E5']?.replace(',', '.')) || null,
-                            sp98: parseFloat(s['Precio Gasolina 98 E5']?.replace(',', '.')) || null,
-                            diesel: parseFloat(s['Precio Gasoleo A']?.replace(',', '.')) || null
+                            sp95: parseFloat((s['Precio Gasolina 95 E5'] || '').replace(',', '.')) || null,
+                            sp98: parseFloat((s['Precio Gasolina 98 E5'] || '').replace(',', '.')) || null,
+                            diesel: parseFloat((s['Precio Gasoleo A'] || '').replace(',', '.')) || null
                         }
                     }))
                     .filter(s => {
@@ -986,7 +946,7 @@
             // Verificar si debe usar API real o fallback geodésico
             if (!state.useRealRoutes || CONFIG.GOOGLE_API_KEY === 'TU_GOOGLE_MAPS_API_KEY') {
                 // Fallback: usar distancia geodésica
-                console.log('📏 Usando distancia geodésica (fallback)');
+                console.log('📍 Usando distancia geodésica (fallback)');
                 return destinations.map(dest => {
                     const distKm = calculateGeoDistance(origin.lat, origin.lon, dest.lat, dest.lon);
                     const distM = distKm * 1000;
@@ -1010,7 +970,10 @@
                     if (!response.ok) throw new Error('Error en Distance Matrix API');
                     
                     const data = await response.json();
-                    if (data.status !== 'OK') throw new Error(`API status: ${data.status}`);
+                    
+                    if (data.status !== 'OK') {
+                        throw new Error(`API status: ${data.status}`);
+                    }
                     
                     const rows = data.rows[0].elements;
                     rows.forEach(element => {
@@ -1039,7 +1002,7 @@
                 
                 return results;
             } catch (error) {
-                console.warn('⚠️ Error fetching driving metrics, usando distancia geodésica:', error);
+                console.warn('Error fetching driving metrics, usando distancia geodésica:', error);
                 // Fallback completo
                 return destinations.map(dest => {
                     const distKm = calculateGeoDistance(origin.lat, origin.lon, dest.lat, dest.lon);
@@ -1053,8 +1016,6 @@
 
         function mergeAndComputeCost(stations, metrics, params) {
             const { fuelType, litersX, consumptionC, timeValue, timeValueUnit } = params;
-            
-            // Convertir a €/hora según la unidad seleccionada
             const timeValueV = timeValueToEuroPerHour(timeValue, timeValueUnit);
             
             const enriched = stations.map((station, idx) => {
@@ -1064,22 +1025,22 @@
                 if (!price || !metric) return null;
                 
                 // Cálculos
-                const Di = (metric.distanceM / 1000) * 2; // ida y vuelta
-                const Ti = (metric.durationS / 3600) * 2; // ida y vuelta
-                const mi = price;
-                const ni = (Di * consumptionC / 100) * mi + timeValueV * Ti;
-                const yi = mi * litersX + ni;
+                const D_i = (metric.distanceM / 1000) * 2; // ida y vuelta
+                const T_i = (metric.durationS / 3600) * 2; // ida y vuelta
+                const m_i = price;
+                const n_i = (D_i * consumptionC / 100) * m_i + timeValueV * T_i;
+                const y_i = m_i * litersX + n_i;
                 
                 return {
                     ...station,
                     distanceKm: metric.distanceM / 1000,
                     durationMin: metric.durationS / 60,
                     price: price,
-                    m: mi,
-                    n: ni,
-                    totalCost: yi,
-                    fuelCostDetour: (Di * consumptionC / 100) * mi,
-                    timeCostDetour: timeValueV * Ti
+                    m: m_i,
+                    n: n_i,
+                    totalCost: y_i,
+                    fuelCostDetour: (D_i * consumptionC / 100) * m_i,
+                    timeCostDetour: timeValueV * T_i
                 };
             }).filter(s => s !== null);
             
@@ -1094,19 +1055,19 @@
                     
                     const denominator = best.m - station.m;
                     if (Math.abs(denominator) > 0.001) {
-                        const Xstar = (station.n - best.n) / denominator;
+                        const X_star = (station.n - best.n) / denominator;
                         
                         // Solo mostrar si X* es positivo y razonable (entre 1 y 200 litros)
-                        if (Xstar > 1 && Xstar < 200) {
-                            station.crossoverLiters = Xstar;
+                        if (X_star > 1 && X_star < 200) {
+                            station.crossoverLiters = X_star;
                             
                             // Determinar mensaje según contexto
-                            if (Xstar > litersX) {
+                            if (X_star > litersX) {
                                 // La mejor opción es mejor ahora, pero esta será mejor con más litros
-                                station.crossoverMessage = `Esta gasolinera es mejor si repostas más de ${Xstar.toFixed(1)}L`;
+                                station.crossoverMessage = `💡 Esta gasolinera es mejor si repostas más de ${X_star.toFixed(1)}L`;
                             } else {
                                 // Esta gasolinera es peor incluso para cantidades menores
-                                station.crossoverMessage = `La primera opción es mejor hasta ${Xstar.toFixed(1)}L, luego esta`;
+                                station.crossoverMessage = `💡 La primera opción es mejor hasta ${X_star.toFixed(1)}L, luego esta`;
                             }
                         }
                     }
@@ -1116,9 +1077,9 @@
             return enriched;
         }
 
-        /* ========================================
-           LÓGICA PRINCIPAL
-        ======================================== */
+        // ============================================
+        // LÓGICA PRINCIPAL
+        // ============================================
         async function getUserLocation() {
             return new Promise((resolve, reject) => {
                 if (!navigator.geolocation) {
@@ -1126,22 +1087,19 @@
                     return;
                 }
                 
-                showStatus('Obteniendo tu ubicación...', 'info');
+                showStatus('📍 Obteniendo tu ubicación...', 'info');
+                
                 navigator.geolocation.getCurrentPosition(
-                    (position) => {
+                    position => {
                         resolve({
                             lat: position.coords.latitude,
                             lon: position.coords.longitude
                         });
                     },
-                    (error) => {
+                    error => {
                         reject(new Error('No se pudo obtener tu ubicación. Verifica los permisos.'));
                     },
-                    {
-                        enableHighAccuracy: true,
-                        timeout: 10000,
-                        maximumAge: 0
-                    }
+                    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
                 );
             });
         }
@@ -1178,7 +1136,9 @@
                             state.location.lon,
                             radius
                         );
-                        if (candidateStations.length < 10) radius += 5;
+                        if (candidateStations.length < 10) {
+                            radius += 5;
+                        }
                     }
                 }
                 
@@ -1228,12 +1188,14 @@
                 paretoData = calculateParetoFrontier(enrichedStations);
                 
                 renderStations();
-                showStatus(`${enrichedStations.length} gasolineras encontradas`, 'success');
+                showStatus(`✅ ${enrichedStations.length} gasolineras encontradas`, 'success');
+                
+                // ya visible
                 
             } catch (error) {
                 console.error('Error searching stations:', error);
                 state.error = error.message;
-                showStatus(`Error: ${error.message}`, 'error');
+                showStatus(`❌ Error: ${error.message}`, 'error');
                 document.getElementById('stationList').innerHTML = `
                     <div class="empty-state">
                         <p>${error.message}</p>
@@ -1256,7 +1218,8 @@
                 sortedStations.forEach(st => {
                     if (st.inFrontier && !optimalFound) {
                         // Incluir rangeEnd con <= para evitar gaps
-                        const isInRange = litros >= st.rangeStart && (st.rangeEnd === Infinity ? true : litros <= st.rangeEnd);
+                        const isInRange = (litros >= st.rangeStart && 
+                                          (st.rangeEnd === Infinity ? true : litros <= st.rangeEnd));
                         st.isOptimalForCurrent = isInRange;
                         if (isInRange) optimalFound = true;
                     } else {
@@ -1280,10 +1243,7 @@
                 const frontierOthers = sortedStations.filter(st => st.inFrontier && !st.isOptimalForCurrent);
                 const dominated = sortedStations.filter(st => !st.inFrontier);
                 
-                // Ordenar frontera por rangeStart
                 frontierOthers.sort((a, b) => (a.rangeStart || 0) - (b.rangeStart || 0));
-                
-                // Ordenar dominadas por distancia
                 dominated.sort((a, b) => a.distanceKm - b.distanceKm);
                 
                 sortedStations.length = 0;
@@ -1293,15 +1253,19 @@
             } else if (state.sortBy === 'time') {
                 sortedStations.sort((a, b) => a.durationMin - b.durationMin);
             }
-            // Por defecto: recomendado ya está ordenado por Pareto
+            // Por defecto 'recomendado' ya está ordenado por Pareto
             
             const html = sortedStations.map((station, idx) => {
                 const isBest = state.sortBy === 'recomendado' && station.isOptimalForCurrent;
                 const rank = idx + 1;
                 
                 let crossoverHtml = '';
-                if (station.crossoverMessage && state.sortBy !== 'recomendado' && idx !== 0) {
-                    crossoverHtml = `<div class="crossover-info">${station.crossoverMessage}</div>`;
+                if (station.crossoverMessage && state.sortBy !== 'recomendado' && idx > 0) {
+                    crossoverHtml = `
+                        <div class="crossover-info">
+                            ${station.crossoverMessage}
+                        </div>
+                    `;
                 }
                 
                 // Badge de frontera de Pareto
@@ -1312,26 +1276,22 @@
                     let badgeIcon = '';
                     
                     if (station.isOptimalForCurrent) {
-                        badgeText = `⭐ Mejor opción para ${state.litersX}L`;
+                        badgeText = `⭐ Mejor opción para ${state.litersX} L`;
                         badgeColor = 'rgba(16, 185, 129, 0.2)';
-                        badgeIcon = '⭐';
+                        badgeIcon = '🏆';
                     } else if (station.inFrontier) {
-                        badgeText = `✓ Mejor para ${station.rangeText}`;
+                        badgeText = `✨ Mejor para ${station.rangeText}`;
                         badgeColor = 'rgba(59, 130, 246, 0.2)';
-                        badgeIcon = '✓';
+                        badgeIcon = '📊';
                     } else if (station.inFrontier === false) {
-                        badgeText = `✗ No recomendada - Hay mejores opciones`;
+                        badgeText = '⚠️ No recomendada - Hay mejores opciones';
                         badgeColor = 'rgba(239, 68, 68, 0.15)';
-                        badgeIcon = '✗';
+                        badgeIcon = '🚫';
                     }
                     
                     if (badgeText) {
                         paretoBadgeHtml = `
-                            <div style="margin: 12px 0; padding: 10px 12px; border-radius: 8px; background: ${badgeColor}; 
-                                border-left: 3px solid ${station.isOptimalForCurrent ? '#10b981' : station.inFrontier ? '#3b82f6' : '#ef4444'}; 
-                                font-size: 13px; font-weight: 600; 
-                                color: ${station.isOptimalForCurrent ? '#10b981' : station.inFrontier ? '#3b82f6' : '#ef4444'}; 
-                                line-height: 1.4;">
+                            <div style="margin: 12px 0; padding: 10px 12px; border-radius: 8px; background: ${badgeColor}; border-left: 3px solid ${station.isOptimalForCurrent ? '#10b981' : station.inFrontier ? '#3b82f6' : '#ef4444'}; font-size: 13px; font-weight: 600; color: ${station.isOptimalForCurrent ? '#10b981' : station.inFrontier ? '#3b82f6' : '#ef4444'}; line-height: 1.4;">
                                 ${badgeText}
                             </div>
                         `;
@@ -1370,7 +1330,9 @@
                             <div style="color: #666; font-size: 14px; margin-bottom: 4px;">Coste Total (${state.litersX}L)</div>
                             <div class="total-cost-value">${station.totalCost.toFixed(2)} €</div>
                             <div class="cost-breakdown">
-                                Desvío: ${station.fuelCostDetour.toFixed(2)} € combustible${state.timeValue > 0 ? ' + ' + station.timeCostDetour.toFixed(2) + ' € tiempo' : ''}
+                                Desvío: ${station.fuelCostDetour.toFixed(2)} € combustible${
+                                    state.timeValue > 0 ? ` + ${station.timeCostDetour.toFixed(2)} € tiempo` : ''
+                                }
                             </div>
                         </div>
                         
@@ -1378,7 +1340,7 @@
                         
                         <div class="station-actions">
                             <button class="btn-nav" onclick="navigateTo(${station.lat}, ${station.lon})">
-                                📍 Ir (Google Maps)
+                                🗺️ Ir (Google Maps)
                             </button>
                         </div>
                     </div>
@@ -1395,40 +1357,50 @@
             window.open(url, '_blank');
         }
 
-        /* ========================================
-           EVENT HANDLERS
-        ======================================== */
+        // ============================================
+        // EVENT HANDLERS
+        // ============================================
         function setLiters(amount) {
             document.getElementById('litersX').value = amount;
             state.litersX = amount;
             updateLitersIndicator(amount);
+            updateSummary();
             recalculate();
         }
 
         function updateLitersIndicator(amount) {
             const indicator = document.getElementById('litersIndicator');
             const buttons = document.querySelectorAll('.liters-presets button');
-            
+
             if (!indicator) return;
-            
+
             indicator.classList.remove('liters-15', 'liters-30', 'liters-50', 'liters-none');
-            
+
             const validOptions = [15, 30, 50];
             const isValidOption = validOptions.includes(amount);
-            
+
             if (isValidOption) {
-                if (amount === 15) indicator.classList.add('liters-15');
-                else if (amount === 30) indicator.classList.add('liters-30');
-                else if (amount === 50) indicator.classList.add('liters-50');
-                
+                if (amount === 15) {
+                    indicator.classList.add('liters-15');
+                } else if (amount === 30) {
+                    indicator.classList.add('liters-30');
+                } else if (amount === 50) {
+                    indicator.classList.add('liters-50');
+                }
+
                 buttons.forEach(btn => {
                     const btnText = btn.textContent.trim();
-                    if (btnText === `${amount}L`) btn.classList.add('active');
-                    else btn.classList.remove('active');
+                    if (btnText === amount + 'L') {
+                        btn.classList.add('active');
+                    } else {
+                        btn.classList.remove('active');
+                    }
                 });
             } else {
                 indicator.classList.add('liters-none');
-                buttons.forEach(btn => btn.classList.remove('active'));
+                buttons.forEach(btn => {
+                    btn.classList.remove('active');
+                });
             }
         }
 
@@ -1439,7 +1411,11 @@
 
         const recalculate = debounce(() => {
             if (state.enrichedStations.length > 0) {
-                const validStations = state.enrichedStations.map(s => ({ ...s, prices: { [state.fuelType]: s.price } }));
+                const validStations = state.enrichedStations.map(s => ({
+                    ...s,
+                    prices: { [state.fuelType]: s.price }
+                }));
+                
                 const metrics = state.enrichedStations.map(s => ({
                     distanceM: s.distanceKm * 1000,
                     durationS: s.durationMin * 60
@@ -1461,13 +1437,12 @@
         }, 300);
 
         function setupEventListeners() {
-            // Combustible
             document.getElementById('fuelType').addEventListener('change', (e) => {
                 state.fuelType = e.target.value;
+                updateSummary();
                 init();
             });
             
-            // Modo rango (km/min)
             document.getElementById('rangeModeKm').addEventListener('click', () => {
                 state.rangeMode = 'km';
                 document.getElementById('rangeModeKm').classList.add('active');
@@ -1475,6 +1450,7 @@
                 document.getElementById('rangeIndicator').classList.remove('mode-min');
                 document.getElementById('rangeValue').value = 10;
                 state.rangeValue = 10;
+                updateSummary();
             });
             
             document.getElementById('rangeModeMin').addEventListener('click', () => {
@@ -1484,34 +1460,32 @@
                 document.getElementById('rangeIndicator').classList.add('mode-min');
                 document.getElementById('rangeValue').value = 10;
                 state.rangeValue = 10;
+                updateSummary();
             });
             
-            // Valor de rango
             document.getElementById('rangeValue').addEventListener('change', (e) => {
                 state.rangeValue = parseFloat(e.target.value) || 1;
+                updateSummary();
                 init();
             });
             
-            // Litros
             document.getElementById('litersX').addEventListener('input', (e) => {
                 state.litersX = parseFloat(e.target.value) || 0;
                 updateLitersIndicator(state.litersX);
+                updateSummary();
                 recalculate();
             });
             
-            // Consumo
             document.getElementById('consumptionC').addEventListener('input', (e) => {
                 state.consumptionC = parseFloat(e.target.value) || 0;
                 recalculate();
             });
             
-            // Valor del tiempo - INPUT
             document.getElementById('timeValue').addEventListener('input', (e) => {
                 state.timeValue = parseFloat(e.target.value) || 0;
                 recalculate();
             });
-            
-            // Valor del tiempo - TOGGLE céntimos/euros
+
             document.getElementById('timeValueCents').addEventListener('click', () => {
                 state.timeValueUnit = 'cents';
                 document.getElementById('timeValueCents').classList.add('active');
@@ -1519,7 +1493,7 @@
                 document.getElementById('timeValueIndicator').classList.remove('unit-euros');
                 recalculate();
             });
-            
+
             document.getElementById('timeValueEuros').addEventListener('click', () => {
                 state.timeValueUnit = 'euros';
                 document.getElementById('timeValueEuros').classList.add('active');
@@ -1528,7 +1502,6 @@
                 recalculate();
             });
             
-            // Ordenación
             document.getElementById('sortRecommended').addEventListener('click', () => {
                 state.sortBy = 'recomendado';
                 updateSortButtons();
@@ -1546,6 +1519,9 @@
                 updateSortButtons();
                 renderStations();
             });
+            
+            // Listeners para recalcular Pareto cuando cambien parámetros avanzados
+            // (ya están los inputs con recalculate(), solo aseguramos que actualice Pareto)
         }
 
         function updateSortButtons() {
@@ -1554,11 +1530,26 @@
             document.getElementById('sortTime').classList.toggle('active', state.sortBy === 'time');
         }
 
-        /* ========================================
-           INICIALIZACIÓN
-        ======================================== */
+        // ============================================
+        // INICIALIZACIÓN
+        // ============================================
         async function init() {
+            const savedState = localStorage.getItem('controlsExpanded');
+            if (savedState !== null) state.controlsExpanded = savedState === "true";
+            
+            const headerUnified = document.getElementById("headerUnified");
+            const icon = document.getElementById("toggleIcon");
+            if (state.controlsExpanded) {
+                headerUnified.classList.remove("collapsed");
+                headerUnified.classList.add("expanded");
+                icon.textContent = "▲";
+            } else {
+                headerUnified.classList.add("collapsed");
+                icon.textContent = "▼";
+            }
+            
             updateLitersIndicator(state.litersX);
+            updateSummary();
             await searchStations();
         }
 
@@ -1576,19 +1567,17 @@
         init();
 
         // HELPER para generar tu hash personalizado (solo para desarrollo)
-        // Abre la consola (F12) y escribe: await generateMyHash("tuCodigoSecreto")
+        // Abre la consola (F12) y escribe: await generateMyHash('tuCodigoSecreto')
+        // Luego copia el resultado y reemplaza SECRET_HASH
         window.generateMyHash = async function(code) {
             const hash = await hashCode(code);
-            console.log('
-');
-            console.log('Tu código:', code);
-            console.log('Tu hash:', hash);
-            console.log('
-');
-            console.log('Copia este valor y reemplaza SECRET_HASH en el código:');
-            console.log(`SECRET_HASH: "${hash}",`);
-            console.log('
-');
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            console.log('✅ Tu código:', code);
+            console.log('🔐 Tu hash:', hash);
+            console.log('');
+            console.log('📝 Copia este valor y reemplaza SECRET_HASH en el código:');
+            console.log(`SECRET_HASH: '${hash}',`);
+            console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
             return hash;
         };
     </script>
